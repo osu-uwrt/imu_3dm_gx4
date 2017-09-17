@@ -182,9 +182,12 @@ public:
   struct FilterData {
     enum {
       Quaternion = (1 << 0),
-      Bias = (1 << 1),
-      AngleUnertainty = (1 << 2),
-      BiasUncertainty = (1 << 3),
+      OrientationEuler = (1 << 1),
+      Acceleration = (1 << 2),
+      AngularRate = (1 << 3),
+      Bias = (1 << 4),
+      AngleUnertainty = (1 << 5),
+      BiasUncertainty = (1 << 6),
     };
 
     unsigned int fields; /**< Which fields are present in the struct. */
@@ -192,14 +195,23 @@ public:
     float quaternion[4]; /**< Orientation quaternion (q0,q1,q2,q3) */
     uint16_t quaternionStatus; /**< Quaternion status */
 
-    float bias[3];       /**< Gyro bias */
-    uint16_t biasStatus; /**< Bias status 0 = invalid, 1 = valid */
+    float eulerRPY[3]; /**< Euler angles (roll,pitch,yaw) [radians] */
+    uint16_t eulerRPYStatus; /**< 0 = invalid, 1 = valid, 2 = angles referenced to magnetic north */
 
-    float angleUncertainty[3];       /**< 1-sigma angle uncertainty */
-    uint16_t angleUncertaintyStatus; /**< 0 = invalid, 1 = valid */
+    float acceleration[3]; /**< Linear acceleration [meter/s^2] */
+    uint16_t accelerationStatus; /**< 0 = invalid, 1 = valid */
 
-    float biasUncertainty[3];       /**< 1-sigma bias uncertainty */
-    uint16_t biasUncertaintyStatus; /**< 0 = invalid, 1 = valid */
+    float angularRate[3]; /**< Angular velocity [radians/sec] */
+    uint16_t angularRateStatus; /**< 0 = invalid, 1 = valid */
+
+    float gyroBias[3];       /**< Gyro bias from sensor frame [radians/sec] */
+    uint16_t gyroBiasStatus; /**< Bias status 0 = invalid, 1 = valid */
+
+    float gyroBiasUncertainty[3];       /**< 1-sigma gyro bias uncertainty [radians/sec] */
+    uint16_t gyroBiasUncertaintyStatus; /**< 0 = invalid, 1 = valid */
+
+    float eulerAngleUncertainty[3];       /**< 1-sigma angle uncertainty for Euler angles due to angle random walk [radians] */
+    uint16_t eulerAngleUncertaintyStatus; /**< 0 = invalid, 1 = valid */
 
     FilterData() : fields(0) {}
   };
@@ -336,7 +348,7 @@ public:
    *
    * @throw invalid_argument if an invalid source is requested.
    */
-  void setFilterDataRate(uint16_t decimation, const std::bitset<4> &sources);
+  void setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources);
 
   /**
    * @brief enableMeasurements Set which measurements to enable in the filter
@@ -398,7 +410,7 @@ private:
   int pollInput(unsigned int to);
 
   std::size_t handleByte(const uint8_t& byte, bool& found);
-  
+
   int handleRead(size_t);
 
   void processPacket();
