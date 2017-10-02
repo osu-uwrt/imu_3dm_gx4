@@ -49,6 +49,7 @@
         <param name="enable_accel_update" type="bool" value="$(arg enable_accel_update)"/>
         <param name="enable_mag_update" type="bool" value="$(arg enable_mag_update)"/>
 
+        <param name="location" type="string" value="$(arg location)" />
         <param name="enable_sensor_to_vehicle_tf" type="bool" value="$(arg enable_sensor_to_vehicle_tf)" />
         <param name="heading_update_source" type="string" value="$(arg heading_update_source)"/>
         <param name="declination_source" type="string" value="$(arg declination_source)"/>

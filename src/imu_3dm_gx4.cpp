@@ -185,6 +185,7 @@ int main(int argc, char **argv) {
   //Variables for IMU reference position
   std::string desiredHeadingUpdateSource, desiredDeclinationSource;
   std::string headingUpdateSource, declinationSource;
+  std::string location;
   float desiredRoll, desiredPitch, desiredYaw;
   float roll, pitch, yaw;
   double desiredLatitude, desiredLongitude, desiredAltitude, manualDeclination;
@@ -203,6 +204,7 @@ int main(int argc, char **argv) {
   nh.param<bool>("verbose", verbose, false);
 
   //Additional parameters - used to set IMU reference position
+  nh.param<std::string>("location", location, (std::string)"columbus");
   nh.param<double>("latitude", desiredLatitude, 39.9984f); //Default is Columbus latitude
   nh.param<double>("longitude", desiredLongitude, -83.0179f); //Default is Columbus longitude
   nh.param<double>("altitude", desiredAltitude, 224.0f); //Default is Columbus altitude
@@ -307,6 +309,7 @@ int main(int argc, char **argv) {
     desiredYaw *= (PI/180);
     manualDeclination *= (PI/180);
 
+    ROS_INFO("Location = %s", location.c_str());
     ROS_INFO("Setting Sensor to Vehicle Frame Transformation");
     imu.setSensorToVehicleTF(desiredRoll, desiredPitch, desiredYaw);
     imu.getSensorToVehicleTF(roll, pitch, yaw);
