@@ -155,6 +155,7 @@ public:
 
   } __attribute__((packed));
 
+
   /**
    * @brief IMUData IMU readings produced by the sensor
    */
@@ -401,6 +402,56 @@ public:
    */
   void
   setFilterDataCallback(const std::function<void(const Imu::FilterData &)> &);
+
+  /**
+   * @brief Save current settings as startup settings
+   */
+  void saveCurrentSettings(uint8_t command, uint8_t field);
+
+  /**
+   * @brief Set sensor to vehicle frame transformation and save as startup settings
+   *Values MUST be in radians
+   */
+  void setSensorToVehicleTF(float roll1, float pitch1, float yaw1);
+
+  /**
+   * @brief Get sensor to vehicle frame transformation (values are in radians)
+   */
+  void getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1);
+
+  /**
+   * @brief Set heading update source and save as startup settings
+   */
+  void setHeadingUpdateSource(std::string headingSource1);
+
+  /**
+   * @brief Get heading update source
+   */
+  void getHeadingUpdateSource(std::string &headingSource1);
+
+  /**
+   * @brief Set refernece position, and save as startup settings
+   *Values MUST be in degrees
+   */
+  void setReferencePosition(double latitude1, double longitude1, double altitude1);
+
+  /**
+   * @brief Get refernece position (values are in degrees)
+   */
+  void getReferencePosition(double &latitude1, double &longitude1, double &altitude1);
+
+  /**
+   * @brief Set declination source and save as startup settings
+   *Manual declination MUST be in radians
+   */
+  void setDeclinationSource(std::string declinationSource1, double manualDeclination1);
+
+  /**
+   * @brief Get declination source (manual declination is in radians)
+   */
+  void getDeclinationSource(std::string &declinationSource1, double &declination1);
+
+
 
 private:
   //  non-copyable

@@ -15,6 +15,7 @@
 using namespace imu_3dm_gx4;
 
 #define kEarthGravity (9.80665)
+#define PI (3.141592653)
 
 ros::Publisher pubIMU;
 ros::Publisher pubMag;
@@ -181,6 +182,15 @@ int main(int argc, char **argv) {
   int requestedImuRate, requestedFilterRate;
   bool verbose;
 
+  //Variables for IMU reference position
+  std::string desiredHeadingUpdateSource, desiredDeclinationSource;
+  std::string headingUpdateSource, declinationSource;
+  float desiredRoll, desiredPitch, desiredYaw;
+  float roll, pitch, yaw;
+  double desiredLatitude, desiredLongitude, desiredAltitude, manualDeclination;
+  double latitude, longitude, altitude, declination;
+  bool enable_sensor_to_vehicle_tf;
+
   //  load parameters from launch file
   nh.param<std::string>("device", device, "/dev/ttyACM0");
   nh.param<int>("baudrate", baudrate, 115200);
@@ -191,6 +201,18 @@ int main(int argc, char **argv) {
   nh.param<bool>("enable_mag_update", enableMagUpdate, true);
   nh.param<bool>("enable_accel_update", enableAccelUpdate, true);
   nh.param<bool>("verbose", verbose, false);
+
+  //Additional parameters - used to set IMU reference position
+  nh.param<double>("latitude", desiredLatitude, 39.9984f); //Default is Columbus latitude
+  nh.param<double>("longitude", desiredLongitude, -83.0179f); //Default is Columbus longitude
+  nh.param<double>("altitude", desiredAltitude, 224.0f); //Default is Columbus altitude
+  nh.param<double>("declination", manualDeclination, 7.01f); //Default is Columbus declination
+  nh.param<float>("roll", desiredRoll, 0.0f); //Default is 0.0
+  nh.param<float>("pitch", desiredPitch, -90.0f); //Default is -90.0
+  nh.param<float>("yaw", desiredYaw, 180.0f); //Default is 180.0
+  nh.param<bool>("enable_sensor_to_vehicle_tf", enable_sensor_to_vehicle_tf, true); //Default is Columbus declination
+  nh.param<std::string>("heading_update_source", desiredHeadingUpdateSource, std::string("magnetometer")); //Default is magnetometer
+  nh.param<std::string>("declination_source", desiredDeclinationSource, std::string("wmm")); //Default is World Magnetic Model
 
   if (requestedFilterRate < 0 || requestedImuRate < 0) {
     ROS_ERROR("imu_rate and filter_rate must be > 0");
@@ -277,6 +299,52 @@ int main(int argc, char **argv) {
     }
     imu.setIMUDataCallback(publishData);
     imu.setFilterDataCallback(publishFilter);
+
+    // Set IMU Reference Position Settings///////////////////////////////
+    //Convert to radians
+    desiredRoll *= (PI/180);
+    desiredPitch *= (PI/180);
+    desiredYaw *= (PI/180);
+    manualDeclination *= (PI/180);
+
+    ROS_INFO("Setting Sensor to Vehicle Frame Transformation");
+    imu.setSensorToVehicleTF(desiredRoll, desiredPitch, desiredYaw);
+    imu.getSensorToVehicleTF(roll, pitch, yaw);
+    roll *= (180/PI); //convert to degrees
+    pitch *= (180/PI); //convert to degrees
+    yaw *= (180/PI); //convert to degrees
+    ROS_INFO("\tDesired Roll: %f", desiredRoll*180/PI);
+    ROS_INFO("\tDesired Pitch: %f", desiredPitch*180/PI);
+    ROS_INFO("\tDesired Yaw: %f", desiredYaw*180/PI);
+    ROS_INFO("\tCurrent Roll: %f", roll);
+    ROS_INFO("\tCurrent Pitch: %f", pitch);
+    ROS_INFO("\tCurrent Yaw: %f", yaw);
+
+    ROS_INFO("Setting Heading Update Source");
+    imu.setHeadingUpdateSource(desiredHeadingUpdateSource);
+    imu.getHeadingUpdateSource(headingUpdateSource);
+    ROS_INFO("\tDesired Source: %s", desiredHeadingUpdateSource.c_str());
+    ROS_INFO("\tCurrent Source: %s", headingUpdateSource.c_str());
+
+    ROS_INFO("Setting Reference Position");
+    imu.setReferencePosition(desiredLatitude, desiredLongitude, desiredAltitude);
+    imu.getReferencePosition(latitude, longitude, altitude);
+    ROS_INFO("\tDesired Latitude: %f", desiredLatitude);
+    ROS_INFO("\tDesired Longitude: %f", desiredLongitude);
+    ROS_INFO("\tDesired Altitude: %f", desiredAltitude);
+    ROS_INFO("\tCurrent Latitude: %f", latitude);
+    ROS_INFO("\tCurrent Longitude: %f", longitude);
+    ROS_INFO("\tCurrent Altitude: %f", altitude);
+
+    ROS_INFO("Setting Declination Source");
+    imu.setDeclinationSource(desiredDeclinationSource, manualDeclination);
+    imu.getDeclinationSource(declinationSource, declination);
+    declination *= (180/PI);
+    ROS_INFO("\tDesired Source: %s", desiredDeclinationSource.c_str());
+    ROS_INFO("\tCurrent Source: %s", declinationSource.c_str());
+    ROS_INFO("\tManual Declination: %f", manualDeclination*180/PI);
+    ROS_INFO("\tCurrent Declination: %f", declination);
+    //////////////////////////////////////////////////////////////////////
 
     //  configure diagnostic updater
     if (!nh.hasParam("diagnostic_period")) {

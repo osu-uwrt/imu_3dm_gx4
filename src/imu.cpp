@@ -19,6 +19,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <boost/assert.hpp>
+#include <ros/ros.h>
+#include <ros/console.h>
 
 extern "C" {
 #include <fcntl.h>
@@ -35,6 +37,7 @@ extern "C" {
 
 #define kDefaultTimeout    (300)
 #define kBufferSize        (10) //  keep this small, or 1000Hz is not attainable
+#define PI (3.141592653)
 
 #define u8(x) static_cast<uint8_t>((x))
 
@@ -46,6 +49,8 @@ extern "C" {
 #define DATA_CLASS_FILTER     u8(0x82)
 
 #define FUNCTION_APPLY        u8(0x01)
+#define FUNCTION_READ         u8(0x02)
+#define FUNCTION_SAVE         u8(0x03)
 
 #define SELECTOR_IMU          u8(0x01)
 #define SELECTOR_FILTER       u8(0x03)
@@ -56,38 +61,48 @@ extern "C" {
 #define DEVICE_RESUME         u8(0x06)
 
 //  3DM and FILTER commands
-#define COMMAND_GET_DEVICE_INFO       u8(0x03)
-#define COMMAND_GET_IMU_BASE_RATE     u8(0x06)
-#define COMMAND_GET_FILTER_BASE_RATE  u8(0x0B)
-#define COMMAND_IMU_MESSAGE_FORMAT    u8(0x08)
-#define COMAMND_FILTER_MESSAGE_FORMAT u8(0x0A)
-#define COMMAND_ENABLE_DATA_STREAM    u8(0x11)
-#define COMMAND_FILTER_CONTROL_FLAGS  u8(0x14)
-#define COMMAND_UART_BAUD_RATE        u8(0x40)
-#define COMMAND_SET_HARD_IRON         u8(0x3A)
-#define COMMAND_SET_SOFT_IRON         u8(0x3B)
-#define COMMAND_ENABLE_MEASUREMENTS   u8(0x41)
-#define COMMAND_DEVICE_STATUS         u8(0x64)
+#define COMMAND_GET_DEVICE_INFO         u8(0x03)
+#define COMMAND_GET_IMU_BASE_RATE       u8(0x06)
+#define COMMAND_GET_FILTER_BASE_RATE    u8(0x0B)
+#define COMMAND_IMU_MESSAGE_FORMAT      u8(0x08)
+#define COMMAND_ENABLE_DATA_STREAM      u8(0x11)
+#define COMMAND_UART_BAUD_RATE          u8(0x40)
+#define COMMAND_SET_HARD_IRON           u8(0x3A)
+#define COMMAND_SET_SOFT_IRON           u8(0x3B)
+#define COMMAND_ENABLE_MEASUREMENTS     u8(0x41)
+#define COMMAND_DEVICE_STATUS           u8(0x64)
 
-//  supported fields
-#define FIELD_FILTER_QUATERNION         u8(0x03)
-#define FIELD_FILTER_ORIENTATION_EULER  u8(0x05)
-#define FIELD_FILTER_ACCELERATION       u8(0x0D)
-#define FIELD_FILTER_ANGULAR_RATE       u8(0x0E)
-#define FIELD_FILTER_GYRO_BIAS          u8(0x06)
-#define FIELD_FILTER_ANGLE_UNCERTAINTY  u8(0x0A)
-#define FIELD_FILTER_BIAS_UNCERTAINTY   u8(0x0B)
+#define COMMAND_FILTER_MESSAGE_FORMAT          u8(0x0A)
+#define COMMAND_FILTER_CONTROL_FLAGS           u8(0x14)
+#define COMMAND_FILTER_SENSOR_TO_VEHICLE_TF    u8(0x11)
+#define COMMAND_FILTER_HEADING_UPDATE_CONTROL  u8(0x18)
+#define COMMAND_FILTER_REFERENCE_POSITION      u8(0x26)
+#define COMMAND_FILTER_DECLINATION_SOURCE      u8(0x43)
 
-#define FIELD_ACCELEROMETER             u8(0x04)
-#define FIELD_GYROSCOPE                 u8(0x05)
-#define FIELD_MAGNETOMETER              u8(0x06)
-#define FIELD_BAROMETER                 u8(0x17)
-
+//Fields internal to commands
 #define FIELD_DEVICE_INFO               u8(0x81)
 #define FIELD_IMU_BASERATE              u8(0x83)
 #define FIELD_FILTER_BASERATE           u8(0x8A)
 #define FIELD_STATUS_REPORT             u8(0x90)
 #define FIELD_ACK_OR_NACK               u8(0xF1)
+#define FIELD_SENSOR_TO_VEHICLE_TF      u8(0x81)
+#define FIELD_HEADING_UPDATE_CONTROL    u8(0x87)
+#define FIELD_REFERENCE_POSITION        u8(0x90)
+#define FIELD_DECLINATION_SOURCE        u8(0xB2)
+
+//Data packet fields
+#define FIELD_FILTER_QUATERNION           u8(0x03)
+#define FIELD_FILTER_ORIENTATION_EULER    u8(0x05)
+#define FIELD_FILTER_ACCELERATION         u8(0x0D)
+#define FIELD_FILTER_ANGULAR_RATE         u8(0x0E)
+#define FIELD_FILTER_GYRO_BIAS            u8(0x06)
+#define FIELD_FILTER_ANGLE_UNCERTAINTY    u8(0x0A)
+#define FIELD_FILTER_BIAS_UNCERTAINTY     u8(0x0B)
+
+#define FIELD_ACCELEROMETER             u8(0x04)
+#define FIELD_GYROSCOPE                 u8(0x05)
+#define FIELD_MAGNETOMETER              u8(0x06)
+#define FIELD_BAROMETER                 u8(0x17)
 
 using namespace imu_3dm_gx4;
 
@@ -792,7 +807,7 @@ void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources) 
     }
   }
 
-  encoder.beginField(COMAMND_FILTER_MESSAGE_FORMAT);
+  encoder.beginField(COMMAND_FILTER_MESSAGE_FORMAT);
   encoder.append(FUNCTION_APPLY, u8(fields.size()));
 
   for (const uint8_t& field : fields) {
@@ -887,14 +902,216 @@ void Imu::enableFilterStream(bool enabled) {
   sendCommand(p);
 }
 
-void
-Imu::setIMUDataCallback(const std::function<void(const Imu::IMUData &)> &cb) {
+void Imu::setIMUDataCallback(const std::function<void(const Imu::IMUData &)> &cb) {
   imuDataCallback_ = cb;
 }
 
 void Imu::setFilterDataCallback(
     const std::function<void(const Imu::FilterData &)> &cb) {
   filterDataCallback_ = cb;
+}
+
+void Imu::saveCurrentSettings(uint8_t command, uint8_t field) {
+  Packet p(command);
+  PacketEncoder encoder(p);
+  encoder.beginField(field);
+  encoder.append(FUNCTION_SAVE);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+}
+
+void Imu::setSensorToVehicleTF(float roll1, float pitch1, float yaw1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
+  encoder.append(FUNCTION_APPLY, roll1, pitch1, yaw1);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
+  ROS_INFO("Saved sensor to vehicle frame transformation settings");
+}
+
+void Imu::getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
+  encoder.append(FUNCTION_READ);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(FIELD_SENSOR_TO_VEHICLE_TF));
+    decoder.extract(1, &roll1);
+    decoder.extract(1, &pitch1);
+    decoder.extract(1, &yaw1);
+  }
+}
+
+void Imu::setHeadingUpdateSource(std::string headingSource1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_HEADING_UPDATE_CONTROL);
+
+  uint8_t flag;
+  //strcmp() compares to constant char pointers --> convert headingSource1 to const char*
+  if(strcmp(headingSource1.c_str(), "none") == 0) {
+    flag = 0x00; //Source = none, disables heading updates
+  }
+  else if(strcmp(headingSource1.c_str(), "magnetometer") == 0) {
+    flag = 0x01; //Source = internal magnetometer
+  }
+  else if(strcmp(headingSource1.c_str(), "external") == 0){
+    flag = 0x03; //Source = external source, need to set via additional command
+  }
+  else {
+    flag = 0x00; //Should only reach this point if headingSource1 is misspelled
+  }
+
+  encoder.append(FUNCTION_APPLY, flag);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_HEADING_UPDATE_CONTROL);
+  ROS_INFO("Saved heading update settings");
+}
+
+void Imu::getHeadingUpdateSource(std::string &headingSource1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_HEADING_UPDATE_CONTROL);
+  encoder.append(FUNCTION_READ);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  uint8_t source;
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(FIELD_HEADING_UPDATE_CONTROL));
+    decoder.extract(1, &source);
+  }
+
+  //Convert source from hexadecimal to string
+  if(source == 0x00) {
+    headingSource1 = (std::string)("none"); //Need std::string cast
+  }
+  else if(source == 0x01) {
+    headingSource1 = (std::string)("magnetometer"); //Need std::string cast
+  }
+  else if(source == 0x03){
+    headingSource1 = (std::string)("external"); //Need std::string cast
+  }
+  else { //Should only reach here if headingSource1 was misspelled in "set" function
+    headingSource1 = (std::string)("none"); //Need std::string cast
+  }
+}
+
+void Imu::setReferencePosition(double latitude1, double longitude1, double altitude1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_REFERENCE_POSITION);
+  uint8_t flag = 0x01;
+  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(latitude1, longitude1, altitude1);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_REFERENCE_POSITION);
+  ROS_INFO("Saved reference position settings");
+}
+
+void Imu::getReferencePosition(double &latitude1, double &longitude1, double &altitude1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_REFERENCE_POSITION);
+  encoder.append(FUNCTION_READ);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  uint8_t flag;
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(FIELD_REFERENCE_POSITION));
+    decoder.extract(1, &flag);
+    decoder.extract(1, &latitude1);
+    decoder.extract(1, &longitude1);
+    decoder.extract(1, &altitude1);
+  }
+}
+
+void Imu::setDeclinationSource(std::string declinationSource1, double manualDeclination1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
+
+  uint8_t flag;
+  //strcmp() compares to constant char pointers --> convert declinationSource1 to const char*
+  if(strcmp(declinationSource1.c_str(), "none") == 0) {
+    flag = 0x01; //Source = none
+  }
+  else if( strcmp(declinationSource1.c_str(), "wmm") == 0) {
+    flag = 0x02; // Source = World Magnetic Model
+  }
+  else if(strcmp(declinationSource1.c_str(), "manual") == 0){
+    flag = 0x03; // Source = manual declination
+  }
+  else {
+    flag = 0x01; //Should only reach this point if declinationSource1 was misspelled
+  }
+
+  encoder.append(FUNCTION_APPLY, flag);
+
+  //If source is manual, use manual declination
+  if(strcmp(declinationSource1.c_str(), "manual") == 0) {
+    encoder.append(manualDeclination1);
+  }
+
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_DECLINATION_SOURCE);
+  ROS_INFO("Saved declination source settings");
+}
+
+void Imu::getDeclinationSource(std::string &declinationSource1, double &declination1) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
+  encoder.append(FUNCTION_READ);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  uint8_t source;
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(FIELD_DECLINATION_SOURCE));
+    decoder.extract(1, &source);
+    decoder.extract(1, &declination1);
+  }
+
+  //Convert source from hexadecimal to string
+  if(source == 0x01) {
+    declinationSource1 = (std::string)("none"); //Need std::string cast
+  }
+  else if(source == 0x02) {
+    declinationSource1 = (std::string)("wmm"); //Need std::string cast
+  }
+  else if(source == 0x03) {
+    declinationSource1 = (std::string)("manual"); //Need std::string cast
+  }
+  else { //Should only reach this point if declinationSource1 was misspelled in "set" function
+    declinationSource1 = (std::string)("none"); //Need std::string cast
+  }
 }
 
 int Imu::pollInput(unsigned int to) {
