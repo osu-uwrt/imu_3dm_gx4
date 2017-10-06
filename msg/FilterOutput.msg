@@ -5,27 +5,34 @@ std_msgs/Header header
 # Status flags are implemented as bit-fields.
 #  0 = invalid
 #  1 = valid
-#  2 = valid and geo-magnetically referenced (quat_status only)
+#  2 = valid and geo-magnetically referenced
 #
 # Note that covariance on orientation becomes invalid as pitch angle exceeds 70 # degrees. This will be indicated by the status flag.
 
-# Quaternion status:
-uint16 quat_status
 
-# Bias status
-uint16 bias_status
+# Quaternion, and status
+geometry_msgs/Quaternion quaternion
+uint16 quaternion_status
 
-# Orientation estimate and diagonal covariance
-geometry_msgs/Quaternion orientation
-float64[9] orientation_covariance
+# Gyroscope Euler angles roll, pitch, yaw [radians], and status
+geometry_msgs/Vector3 euler_rpy
+float64 euler_rpy_status
+float64[9] euler_angle_covariance
+uint16 euler_angle_covariance_status
 
-# Gyro bias and diagonal covariance
-geometry_msgs/Vector3 bias
-float64[9] bias_covariance
+# Gyro bias, diagonal covariance, and status
+geometry_msgs/Vector3 gyro_bias
+uint16 gyro_bias_status
+float64[9] gyro_bias_covariance
+uint16 gyro_bias_covariance_status
 
-# Covariance statuses
-uint16 bias_covariance_status
-uint16 orientation_covariance_status
+# Linear accelerations along x,y,z axis [meter/s^2], and status
+geometry_msgs/Vector3 linear_acceleration
+float64 linear_acceleration_status
+
+# Angular rates along x,y,z axis [radians/s], and status
+geometry_msgs/Vector3 angular_velocity
+float64 angular_velocity_status
 
 # Constants
 uint16 STATUS_INVALID = 0
