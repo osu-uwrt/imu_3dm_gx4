@@ -94,9 +94,9 @@ void publishFilter(const Imu::FilterData &data) {
   output.quaternion.z = data.quaternion[3];
   output.quaternion_status = data.quaternionStatus;
 
-  output.euler_rpy.x = data.eulerRPY[0]*180/3.141592653;
-  output.euler_rpy.y = data.eulerRPY[1]*180/3.141592653;
-  output.euler_rpy.z = data.eulerRPY[2]*180/3.141592653;
+  output.euler_rpy.x = data.eulerRPY[0];
+  output.euler_rpy.y = data.eulerRPY[1];
+  output.euler_rpy.z = data.eulerRPY[2];
   output.euler_rpy_status = data.eulerRPYStatus;
 
   output.euler_angle_covariance[0] = data.eulerAngleUncertainty[0]*
