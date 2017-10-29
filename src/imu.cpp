@@ -428,11 +428,34 @@ void Imu::connect() {
     throw std::runtime_error("Socket is already open");
   }
 
+  //char *resolved_name = (char *)malloc(PATH_MAX);
+  // char file_name[512];
+  // char path[512];
+  // strcpy(path, "/dev/");
+  // ROS_INFO("device_: %s", device_.c_str());
+  // int path_size = readlink(device_.c_str(), file_name, sizeof(file_name));
+  //
+  // if( path_size == -1) {
+  //   perror("read link");
+  //   exit(EXIT_FAILURE);
+  // }
+  //
+  // ROS_INFO("path_size: %d", path_size);
+  // if (path_size >= 0) {
+  //   strcat(path, file_name);
+  //   //strcat(path, "\0");
+  //   ROS_INFO("path: %s", path);
+  //   //fd_ = ::open(path, O_RDWR | O_NOCTTY | O_NDELAY); //  read/write, no
+  //                                                     // controlling terminal, non
+  //                                                     // blocking access
+  // }
   const char *path = device_.c_str();
   fd_ = ::open(path, O_RDWR | O_NOCTTY | O_NDELAY); //  read/write, no
                                                     // controlling terminal, non
                                                     // blocking access
+
   if (fd_ < 0) {
+    perror("open");
     throw std::runtime_error("Failed to open device : " + device_);
   }
 
