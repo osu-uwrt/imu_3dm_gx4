@@ -117,6 +117,11 @@ void publishFilter(const Imu::FilterData &data) {
   output.gyro_bias_covariance[8] = data.gyroBiasUncertainty[2]*data.gyroBiasUncertainty[2];
   output.gyro_bias_covariance_status = data.gyroBiasUncertaintyStatus;
 
+  output.heading = data.heading;
+  output.heading_uncertainty = data.headingUncertainty;
+  output.heading_update_source = data.headingUpdateSource;
+  output.heading_flags = data.headingFlags;
+
   output.linear_acceleration.x = data.acceleration[0];
   output.linear_acceleration.y = data.acceleration[1];
   output.linear_acceleration.z = data.acceleration[2];
@@ -182,7 +187,7 @@ int main(int argc, char **argv) {
   int requestedImuRate, requestedFilterRate;
   bool verbose;
 
-  //Variables for IMU reference position
+  // Variables for IMU reference position
   std::string desiredHeadingUpdateSource, desiredDeclinationSource;
   std::string headingUpdateSource, declinationSource;
   std::string location;
@@ -192,7 +197,7 @@ int main(int argc, char **argv) {
   double latitude, longitude, altitude, declination;
   bool enable_sensor_to_vehicle_tf;
 
-  //  load parameters from launch file
+  // Load parameters from launch file
   nh.param<std::string>("device", device, "/dev/imu_front");
   nh.param<int>("baudrate", baudrate, 115200);
   nh.param<std::string>("frame_id", frameId, std::string("imu"));
@@ -203,7 +208,7 @@ int main(int argc, char **argv) {
   nh.param<bool>("enable_accel_update", enableAccelUpdate, true);
   nh.param<bool>("verbose", verbose, false);
 
-  //Additional parameters - used to set IMU reference position
+  // Additional parameters - used to set IMU reference position
   nh.param<std::string>("location", location, (std::string)"columbus");
   nh.param<double>("latitude", desiredLatitude, 39.9984f); //Default is Columbus latitude
   nh.param<double>("longitude", desiredLongitude, -83.0179f); //Default is Columbus longitude
@@ -229,7 +234,7 @@ int main(int argc, char **argv) {
     pubFilter = nh.advertise<imu_3dm_gx4::FilterOutput>("filter", 1);
   }
 
-  //  new instance of the IMU
+  // Ceate new instance of the IMU
   Imu imu(device, verbose);
   try {
     imu.connect();
@@ -247,14 +252,14 @@ int main(int argc, char **argv) {
     ROS_INFO("Idling the device");
     imu.idle();
 
-    //  read back data rates
+    // Read back data rates
     uint16_t imuBaseRate, filterBaseRate;
     imu.getIMUDataBaseRate(imuBaseRate);
     ROS_INFO("IMU data base rate: %u Hz", imuBaseRate);
     imu.getFilterDataBaseRate(filterBaseRate);
     ROS_INFO("Filter data base rate: %u Hz", filterBaseRate);
 
-    //  calculate decimation rates
+    // Calculate and set decimation rates
     if (static_cast<uint16_t>(requestedImuRate) > imuBaseRate) {
       throw std::runtime_error("imu_rate cannot exceed " +
                                std::to_string(imuBaseRate));
@@ -268,6 +273,7 @@ int main(int argc, char **argv) {
     const uint16_t filterDecimation = filterBaseRate / requestedFilterRate;
 
     ROS_INFO("Selecting IMU decimation: %u", imuDecimation);
+    //The following variables are taken from 'enum' in the struct called IMUData
     imu.setIMUDataRate(
         imuDecimation, Imu::IMUData::Accelerometer |
           Imu::IMUData::Gyroscope |
@@ -275,8 +281,10 @@ int main(int argc, char **argv) {
           Imu::IMUData::Barometer);
 
     ROS_INFO("Selecting filter decimation: %u", filterDecimation);
+    //The following variables are taken from 'enum' in the struct called FilterData
     imu.setFilterDataRate(filterDecimation, Imu::FilterData::Quaternion |
                           Imu::FilterData::OrientationEuler |
+                          Imu::FilterData::HeadingUpdate |
                           Imu::FilterData::Acceleration |
                           Imu::FilterData::AngularRate |
                           Imu::FilterData::Bias |
@@ -303,6 +311,7 @@ int main(int argc, char **argv) {
     imu.setFilterDataCallback(publishFilter);
 
     // Set IMU Reference Position Settings///////////////////////////////
+    //Set parameters and display to console thru ROS_INFO
     //Convert to radians
     desiredRoll *= (PI/180);
     desiredPitch *= (PI/180);
@@ -349,7 +358,7 @@ int main(int argc, char **argv) {
     ROS_INFO("\tCurrent Declination: %f", declination);
     //////////////////////////////////////////////////////////////////////
 
-    //  configure diagnostic updater
+    // Configure diagnostic updater
     if (!nh.hasParam("diagnostic_period")) {
       nh.setParam("diagnostic_period", 0.2);  //  5hz period
     }
@@ -358,7 +367,7 @@ int main(int argc, char **argv) {
     const std::string hwId = info.modelName + "-" + info.modelNumber;
     updater->setHardwareID(hwId);
 
-    //  calculate the actual rates we will get
+    // Calculate the actual rates we will get
     double imuRate = imuBaseRate / (1.0 * imuDecimation);
     double filterRate = filterBaseRate / (1.0 * filterDecimation);
     imuDiag = configTopicDiagnostic("imu",&imuRate);

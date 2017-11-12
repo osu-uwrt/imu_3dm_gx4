@@ -41,68 +41,85 @@ extern "C" {
 
 #define u8(x) static_cast<uint8_t>((x))
 
+// Command Set (a set of commands pertaining to Base, 3DM, Estimation Filter, or System)
+// NOTE: System Commands are not used in this driver (no need to change communication mode to Sensor Direct)
 #define COMMAND_CLASS_BASE    u8(0x01)
 #define COMMAND_CLASS_3DM     u8(0x0C)
 #define COMMAND_CLASS_FILTER  u8(0x0D)
 
+// Data Set (a set of data pertaining to IMU Data or Estimation Filter Data)
 #define DATA_CLASS_IMU        u8(0x80)
 #define DATA_CLASS_FILTER     u8(0x82)
 
-#define FUNCTION_APPLY        u8(0x01)
-#define FUNCTION_READ         u8(0x02)
-#define FUNCTION_SAVE         u8(0x03)
+///////////////////////////////////////////////////////////////////////////////
+// Base Commands
+#define COMMAND_BASE_DEVICE_PING      u8(0x01)
+#define COMMAND_BASE_DEVICE_IDLE      u8(0x02)
+#define COMMAND_BASS_DEVICE_RESUME    u8(0x06)
+#define COMMAND_BASE_GET_DEVICE_INFO  u8(0x03)
 
-#define SELECTOR_IMU          u8(0x01)
-#define SELECTOR_FILTER       u8(0x03)
+// Base Command Reply Fields
+#define REPLY_FIELD_BASE_DEVICE_INFO         u8(0x81)
 
-//  base commands
-#define DEVICE_PING           u8(0x01)
-#define DEVICE_IDLE           u8(0x02)
-#define DEVICE_RESUME         u8(0x06)
+///////////////////////////////////////////////////////////////////////////////
+// 3DM Commands
+#define COMMAND_3DM_GET_IMU_BASE_RATE       u8(0x06)
+#define COMMAND_3DM_GET_FILTER_BASE_RATE    u8(0x0B)
+#define COMMAND_3DM_IMU_MESSAGE_FORMAT      u8(0x08)
+#define COMMAND_3DM_ENABLE_DATA_STREAM      u8(0x11)
+#define COMMAND_3DM_UART_BAUD_RATE          u8(0x40)
+#define COMMAND_3DM_SET_HARD_IRON           u8(0x3A)
+#define COMMAND_3DM_SET_SOFT_IRON           u8(0x3B)
+#define COMMAND_3DM_DEVICE_STATUS           u8(0x64)
 
-//  3DM and FILTER commands
-#define COMMAND_GET_DEVICE_INFO         u8(0x03)
-#define COMMAND_GET_IMU_BASE_RATE       u8(0x06)
-#define COMMAND_GET_FILTER_BASE_RATE    u8(0x0B)
-#define COMMAND_IMU_MESSAGE_FORMAT      u8(0x08)
-#define COMMAND_ENABLE_DATA_STREAM      u8(0x11)
-#define COMMAND_UART_BAUD_RATE          u8(0x40)
-#define COMMAND_SET_HARD_IRON           u8(0x3A)
-#define COMMAND_SET_SOFT_IRON           u8(0x3B)
-#define COMMAND_ENABLE_MEASUREMENTS     u8(0x41)
-#define COMMAND_DEVICE_STATUS           u8(0x64)
+// 3DM Data Sets
+#define DATA_3DM_ACCELEROMETER       u8(0x04)
+#define DATA_3DM_GYROSCOPE           u8(0x05)
+#define DATA_3DM_MAGNETOMETER        u8(0x06)
+#define DATA_3DM_BAROMETER           u8(0x17)
 
+// 3DM Command Reply Fields
+#define REPLY_FIELD_3DM_IMU_BASE_RATE        u8(0x83)
+#define REPLY_FIELD_3DM_FILTER_BASE_RATE     u8(0x8A)
+#define REPLY_FIELD_3DM_STATUS_REPORT        u8(0x90)
+
+// 3DM Command - Enable Data Stream Constants
+#define COMMAND_3DM_DEVICE_SELECTOR_IMU          u8(0x01)
+#define COMMAND_3DM_DEVICE_SELECTOR_FILTER       u8(0x03)
+///////////////////////////////////////////////////////////////////////////////
+// Estimation Filter Commands
 #define COMMAND_FILTER_MESSAGE_FORMAT          u8(0x0A)
 #define COMMAND_FILTER_CONTROL_FLAGS           u8(0x14)
+#define COMMAND_FILTER_ENABLE_MEASUREMENTS     u8(0x41)
 #define COMMAND_FILTER_SENSOR_TO_VEHICLE_TF    u8(0x11)
 #define COMMAND_FILTER_HEADING_UPDATE_CONTROL  u8(0x18)
 #define COMMAND_FILTER_REFERENCE_POSITION      u8(0x26)
 #define COMMAND_FILTER_DECLINATION_SOURCE      u8(0x43)
 
-//Fields internal to commands
-#define FIELD_DEVICE_INFO               u8(0x81)
-#define FIELD_IMU_BASERATE              u8(0x83)
-#define FIELD_FILTER_BASERATE           u8(0x8A)
-#define FIELD_STATUS_REPORT             u8(0x90)
+// Estimation Filter Data Sets
+#define DATA_FILTER_ORIENTATION_QUATERNION   u8(0x03)
+#define DATA_FILTER_ORIENTATION_EULER        u8(0x05)
+#define DATA_FILTER_HEADING_UPDATE           u8(0x14)
+#define DATA_FILTER_ACCELERATION             u8(0x0D)
+#define DATA_FILTER_ANGULAR_RATE             u8(0x0E)
+#define DATA_FILTER_GYRO_BIAS                u8(0x06)
+#define DATA_FILTER_ANGLE_UNCERTAINTY        u8(0x0A)
+#define DATA_FILTER_BIAS_UNCERTAINTY         u8(0x0B)
+
+// Estimation Filter Command Reply Fields
+#define REPLY_FIELD_FILTER_SENSOR_TO_VEHICLE_TF      u8(0x81)
+#define REPLY_FIELD_FILTER_HEADING_UPDATE_CONTROL    u8(0x87)
+#define REPLY_FIELD_FILTER_REFERENCE_POSITION        u8(0x90)
+#define REPLY_FIELD_FILTER_DECLINATION_SOURCE        u8(0xB2)
+///////////////////////////////////////////////////////////////////////////////
+
+// General Command Functions
+#define COMMAND_FUNCTION_APPLY      u8(0x01)
+#define COMMAND_FUNCTION_READ       u8(0x02)
+#define COMMAND_FUNCTION_SAVE       u8(0x03)
+
+// Used in PacketDecoder
 #define FIELD_ACK_OR_NACK               u8(0xF1)
-#define FIELD_SENSOR_TO_VEHICLE_TF      u8(0x81)
-#define FIELD_HEADING_UPDATE_CONTROL    u8(0x87)
-#define FIELD_REFERENCE_POSITION        u8(0x90)
-#define FIELD_DECLINATION_SOURCE        u8(0xB2)
-
-//Data packet fields
-#define FIELD_FILTER_QUATERNION           u8(0x03)
-#define FIELD_FILTER_ORIENTATION_EULER    u8(0x05)
-#define FIELD_FILTER_ACCELERATION         u8(0x0D)
-#define FIELD_FILTER_ANGULAR_RATE         u8(0x0E)
-#define FIELD_FILTER_GYRO_BIAS            u8(0x06)
-#define FIELD_FILTER_ANGLE_UNCERTAINTY    u8(0x0A)
-#define FIELD_FILTER_BIAS_UNCERTAINTY     u8(0x0B)
-
-#define FIELD_ACCELEROMETER             u8(0x04)
-#define FIELD_GYROSCOPE                 u8(0x05)
-#define FIELD_MAGNETOMETER              u8(0x06)
-#define FIELD_BAROMETER                 u8(0x17)
 
 using namespace imu_3dm_gx4;
 
@@ -584,7 +601,7 @@ void Imu::selectBaudRate(unsigned int baud) {
   Imu::Packet pp(COMMAND_CLASS_BASE); //  was 0x02
   {
     PacketEncoder encoder(pp);
-    encoder.beginField(DEVICE_PING);
+    encoder.beginField(COMMAND_BASE_DEVICE_PING);
     encoder.endField();
   }
   pp.calcChecksum();
@@ -637,8 +654,8 @@ void Imu::selectBaudRate(unsigned int baud) {
   Packet comm(COMMAND_CLASS_3DM);  //  was 0x07
   {
     PacketEncoder encoder(comm);
-    encoder.beginField(COMMAND_UART_BAUD_RATE);
-    encoder.append(FUNCTION_APPLY);
+    encoder.beginField(COMMAND_3DM_UART_BAUD_RATE);
+    encoder.append(COMMAND_FUNCTION_APPLY);
     encoder.append(static_cast<uint32_t>(baud));
     encoder.endField();
     assert(comm.length == 0x07);
@@ -676,7 +693,7 @@ void Imu::selectBaudRate(unsigned int baud) {
 void Imu::ping() {
   Imu::Packet p(COMMAND_CLASS_BASE);  //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(DEVICE_PING);
+  encoder.beginField(COMMAND_BASE_DEVICE_PING);
   encoder.endField();
   p.calcChecksum();
   assert(p.checkMSB == 0xE0 && p.checkLSB == 0xC6);
@@ -686,7 +703,7 @@ void Imu::ping() {
 void Imu::idle(bool needReply) {
   Imu::Packet p(COMMAND_CLASS_BASE);  //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(DEVICE_IDLE);
+  encoder.beginField(COMMAND_BASE_DEVICE_IDLE);
   encoder.endField();
   p.calcChecksum();
   assert(p.checkMSB == 0xE1 && p.checkLSB == 0xC7);
@@ -696,7 +713,7 @@ void Imu::idle(bool needReply) {
 void Imu::resume() {
   Imu::Packet p(COMMAND_CLASS_BASE);  //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(DEVICE_RESUME);
+  encoder.beginField(COMMAND_BASS_DEVICE_RESUME);
   encoder.endField();
   p.calcChecksum();
   assert(p.checkMSB == 0xE5 && p.checkLSB == 0xCB);
@@ -706,7 +723,7 @@ void Imu::resume() {
 void Imu::getDeviceInfo(Imu::Info &info) {
   Imu::Packet p(COMMAND_CLASS_BASE);  //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_GET_DEVICE_INFO);
+  encoder.beginField(COMMAND_BASE_GET_DEVICE_INFO);
   encoder.endField();
   p.calcChecksum();
   assert(p.checkMSB == 0xE2 && p.checkLSB == 0xC8);
@@ -714,7 +731,7 @@ void Imu::getDeviceInfo(Imu::Info &info) {
   sendCommand(p);
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_DEVICE_INFO));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_BASE_DEVICE_INFO));
     char buffer[16];
 
     decoder.extract(1, &info.firmwareVersion);
@@ -735,14 +752,14 @@ void Imu::getDeviceInfo(Imu::Info &info) {
 void Imu::getIMUDataBaseRate(uint16_t &baseRate) {
   Packet p(COMMAND_CLASS_3DM);  //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_GET_IMU_BASE_RATE);
+  encoder.beginField(COMMAND_3DM_GET_IMU_BASE_RATE);
   encoder.endField();
   p.calcChecksum();
 
   sendCommand(p);
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_IMU_BASERATE));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_3DM_IMU_BASE_RATE));
     decoder.extract(1, &baseRate);
   }
 }
@@ -750,18 +767,25 @@ void Imu::getIMUDataBaseRate(uint16_t &baseRate) {
 void Imu::getFilterDataBaseRate(uint16_t &baseRate) {
   Packet p(COMMAND_CLASS_3DM); //  was 0x02
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_GET_FILTER_BASE_RATE);
+  encoder.beginField(COMMAND_3DM_GET_FILTER_BASE_RATE);
   encoder.endField();
   p.calcChecksum();
 
+  /*sendCommand(p);
+  decode(&packet_.payload[6], 1, &baseRate);*/
+
   sendCommand(p);
-  decode(&packet_.payload[6], 1, &baseRate);
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_3DM_FILTER_BASE_RATE));
+    decoder.extract(1, &baseRate);
+  }
 }
 
 void Imu::getDiagnosticInfo(Imu::DiagnosticFields &fields) {
   Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_DEVICE_STATUS);
+  encoder.beginField(COMMAND_3DM_DEVICE_STATUS);
   encoder.append(static_cast<uint16_t>(6234));  //  device model number
   encoder.append(u8(0x02)); //  diagnostic mode
   encoder.endField();
@@ -770,7 +794,7 @@ void Imu::getDiagnosticInfo(Imu::DiagnosticFields &fields) {
   sendCommand(p);
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_STATUS_REPORT));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_3DM_STATUS_REPORT));
 
     decoder.extract(1, &fields.modelNumber);
     decoder.extract(1, &fields.selector);
@@ -786,10 +810,10 @@ void Imu::setIMUDataRate(uint16_t decimation,
   PacketEncoder encoder(p);
 
   //  valid field descriptors: accel, gyro, mag, pressure
-  static const uint8_t fieldDescs[] = { FIELD_ACCELEROMETER,
-                                        FIELD_GYROSCOPE,
-                                        FIELD_MAGNETOMETER,
-                                        FIELD_BAROMETER };
+  static const uint8_t fieldDescs[] = { DATA_3DM_ACCELEROMETER,
+                                        DATA_3DM_GYROSCOPE,
+                                        DATA_3DM_MAGNETOMETER,
+                                        DATA_3DM_BAROMETER };
   assert(sizeof(fieldDescs) == sources.size());
   std::vector<uint8_t> fields;
 
@@ -798,8 +822,8 @@ void Imu::setIMUDataRate(uint16_t decimation,
       fields.push_back(fieldDescs[i]);
     }
   }
-  encoder.beginField(COMMAND_IMU_MESSAGE_FORMAT);
-  encoder.append(FUNCTION_APPLY, u8(fields.size()));
+  encoder.beginField(COMMAND_3DM_IMU_MESSAGE_FORMAT);
+  encoder.append(COMMAND_FUNCTION_APPLY, u8(fields.size()));
 
   for (const uint8_t& field : fields) {
     encoder.append(field, decimation);
@@ -810,17 +834,18 @@ void Imu::setIMUDataRate(uint16_t decimation,
   sendCommand(p);
 }
 
-void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources) {
+void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<8> &sources) {
   Imu::Packet p(COMMAND_CLASS_3DM);  //  was 0x04
   PacketEncoder encoder(p);
 
-  static const uint8_t fieldDescs[] = { FIELD_FILTER_QUATERNION,
-                                        FIELD_FILTER_ORIENTATION_EULER,
-                                        FIELD_FILTER_ACCELERATION,
-                                        FIELD_FILTER_ANGULAR_RATE,
-                                        FIELD_FILTER_GYRO_BIAS,
-                                        FIELD_FILTER_ANGLE_UNCERTAINTY,
-                                        FIELD_FILTER_BIAS_UNCERTAINTY };
+  static const uint8_t fieldDescs[] = { DATA_FILTER_ORIENTATION_QUATERNION,
+                                        DATA_FILTER_ORIENTATION_EULER,
+                                        DATA_FILTER_HEADING_UPDATE,
+                                        DATA_FILTER_ACCELERATION,
+                                        DATA_FILTER_ANGULAR_RATE,
+                                        DATA_FILTER_GYRO_BIAS,
+                                        DATA_FILTER_ANGLE_UNCERTAINTY,
+                                        DATA_FILTER_BIAS_UNCERTAINTY };
   assert(sizeof(fieldDescs) == sources.size());
   std::vector<uint8_t> fields;
 
@@ -831,7 +856,7 @@ void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources) 
   }
 
   encoder.beginField(COMMAND_FILTER_MESSAGE_FORMAT);
-  encoder.append(FUNCTION_APPLY, u8(fields.size()));
+  encoder.append(COMMAND_FUNCTION_APPLY, u8(fields.size()));
 
   for (const uint8_t& field : fields) {
     encoder.append(field, decimation);
@@ -844,7 +869,7 @@ void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources) 
 void Imu::enableMeasurements(bool accel, bool magnetometer) {
   Imu::Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_ENABLE_MEASUREMENTS);
+  encoder.beginField(COMMAND_FILTER_ENABLE_MEASUREMENTS);
   uint16_t flag=0;
   if (accel) {
     flag |= 0x01;
@@ -852,7 +877,7 @@ void Imu::enableMeasurements(bool accel, bool magnetometer) {
   if (magnetometer) {
     flag |= 0x02;
   }
-  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(COMMAND_FUNCTION_APPLY, flag);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -866,7 +891,7 @@ void Imu::enableBiasEstimation(bool enabled) {
   if (enabled) {
     flag = 0xFFFF;
   }
-  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(COMMAND_FUNCTION_APPLY, flag);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -875,8 +900,8 @@ void Imu::enableBiasEstimation(bool enabled) {
 void Imu::setHardIronOffset(float offset[3]) {
   Imu::Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_SET_HARD_IRON);
-  encoder.append(FUNCTION_APPLY, offset[0], offset[1], offset[2]);
+  encoder.beginField(COMMAND_3DM_SET_HARD_IRON);
+  encoder.append(COMMAND_FUNCTION_APPLY, offset[0], offset[1], offset[2]);
   encoder.endField();
   assert(p.length == 0x0F);
   p.calcChecksum();
@@ -886,8 +911,8 @@ void Imu::setHardIronOffset(float offset[3]) {
 void Imu::setSoftIronMatrix(float matrix[9]) {
   Imu::Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_SET_SOFT_IRON);
-  encoder.append(FUNCTION_APPLY);
+  encoder.beginField(COMMAND_3DM_SET_SOFT_IRON);
+  encoder.append(COMMAND_FUNCTION_APPLY);
   for (int i=0; i < 9; i++) {
     encoder.append(matrix[i]);
   }
@@ -900,8 +925,8 @@ void Imu::setSoftIronMatrix(float matrix[9]) {
 void Imu::enableIMUStream(bool enabled) {
   Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_ENABLE_DATA_STREAM);
-  encoder.append(FUNCTION_APPLY, SELECTOR_IMU);
+  encoder.beginField(COMMAND_3DM_ENABLE_DATA_STREAM);
+  encoder.append(COMMAND_FUNCTION_APPLY, COMMAND_3DM_DEVICE_SELECTOR_IMU);
   encoder.append(u8(enabled));
   encoder.endField();
   p.calcChecksum();
@@ -914,8 +939,8 @@ void Imu::enableIMUStream(bool enabled) {
 void Imu::enableFilterStream(bool enabled) {
   Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
-  encoder.beginField(COMMAND_ENABLE_DATA_STREAM);
-  encoder.append(FUNCTION_APPLY, SELECTOR_FILTER);
+  encoder.beginField(COMMAND_3DM_ENABLE_DATA_STREAM);
+  encoder.append(COMMAND_FUNCTION_APPLY, COMMAND_3DM_DEVICE_SELECTOR_FILTER);
   encoder.append(u8(enabled));
   encoder.endField();
   p.calcChecksum();
@@ -938,7 +963,7 @@ void Imu::saveCurrentSettings(uint8_t command, uint8_t field) {
   Packet p(command);
   PacketEncoder encoder(p);
   encoder.beginField(field);
-  encoder.append(FUNCTION_SAVE);
+  encoder.append(COMMAND_FUNCTION_SAVE);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -948,7 +973,7 @@ void Imu::setSensorToVehicleTF(float roll1, float pitch1, float yaw1) {
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
-  encoder.append(FUNCTION_APPLY, roll1, pitch1, yaw1);
+  encoder.append(COMMAND_FUNCTION_APPLY, roll1, pitch1, yaw1);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -961,14 +986,14 @@ void Imu::getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1) {
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
-  encoder.append(FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_SENSOR_TO_VEHICLE_TF));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_SENSOR_TO_VEHICLE_TF));
     decoder.extract(1, &roll1);
     decoder.extract(1, &pitch1);
     decoder.extract(1, &yaw1);
@@ -995,7 +1020,7 @@ void Imu::setHeadingUpdateSource(std::string headingSource1) {
     flag = 0x00; //Should only reach this point if headingSource1 is misspelled
   }
 
-  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(COMMAND_FUNCTION_APPLY, flag);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -1008,7 +1033,7 @@ void Imu::getHeadingUpdateSource(std::string &headingSource1) {
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_HEADING_UPDATE_CONTROL);
-  encoder.append(FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -1016,7 +1041,7 @@ void Imu::getHeadingUpdateSource(std::string &headingSource1) {
   uint8_t source;
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_HEADING_UPDATE_CONTROL));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_HEADING_UPDATE_CONTROL));
     decoder.extract(1, &source);
   }
 
@@ -1040,7 +1065,7 @@ void Imu::setReferencePosition(double latitude1, double longitude1, double altit
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_REFERENCE_POSITION);
   uint8_t flag = 0x01;
-  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(COMMAND_FUNCTION_APPLY, flag);
   encoder.append(latitude1, longitude1, altitude1);
   encoder.endField();
   p.calcChecksum();
@@ -1054,7 +1079,7 @@ void Imu::getReferencePosition(double &latitude1, double &longitude1, double &al
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_REFERENCE_POSITION);
-  encoder.append(FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -1062,7 +1087,7 @@ void Imu::getReferencePosition(double &latitude1, double &longitude1, double &al
   uint8_t flag;
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_REFERENCE_POSITION));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_REFERENCE_POSITION));
     decoder.extract(1, &flag);
     decoder.extract(1, &latitude1);
     decoder.extract(1, &longitude1);
@@ -1090,7 +1115,7 @@ void Imu::setDeclinationSource(std::string declinationSource1, double manualDecl
     flag = 0x01; //Should only reach this point if declinationSource1 was misspelled
   }
 
-  encoder.append(FUNCTION_APPLY, flag);
+  encoder.append(COMMAND_FUNCTION_APPLY, flag);
 
   //If source is manual, use manual declination
   if(strcmp(declinationSource1.c_str(), "manual") == 0) {
@@ -1109,7 +1134,7 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
-  encoder.append(FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ);
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -1117,7 +1142,7 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   uint8_t source;
   {
     PacketDecoder decoder(packet_);
-    BOOST_VERIFY(decoder.advanceTo(FIELD_DECLINATION_SOURCE));
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_DECLINATION_SOURCE));
     decoder.extract(1, &source);
     decoder.extract(1, &declination1);
   }
@@ -1282,6 +1307,7 @@ int Imu::handleRead(size_t bytes_transferred) {
   return found;
 }
 
+//Process IMU Data Packets and sort thru information based on type of packet
 void Imu::processPacket() {
   IMUData data;
   FilterData filterData;
@@ -1291,19 +1317,19 @@ void Imu::processPacket() {
     //  process all fields in the packet
     for (int d; (d = decoder.fieldDescriptor()) > 0; decoder.advance()) {
       switch (u8(d)) {
-      case FIELD_ACCELEROMETER:
+      case DATA_3DM_ACCELEROMETER:
         decoder.extract(3, &data.accel[0]);
         data.fields |= IMUData::Accelerometer;
         break;
-      case FIELD_GYROSCOPE:
+      case DATA_3DM_GYROSCOPE:
         decoder.extract(3, &data.gyro[0]);
         data.fields |= IMUData::Gyroscope;
         break;
-      case FIELD_MAGNETOMETER:
+      case DATA_3DM_MAGNETOMETER:
         decoder.extract(3, &data.mag[0]);
         data.fields |= IMUData::Magnetometer;
         break;
-      case FIELD_BAROMETER:
+      case DATA_3DM_BAROMETER:
         decoder.extract(1, &data.pressure);
         data.fields |= IMUData::Barometer;
         break;
@@ -1321,40 +1347,47 @@ void Imu::processPacket() {
   } else if (packet_.isFilterData()) {
     for (int d; (d = decoder.fieldDescriptor()) > 0; decoder.advance()) {
       switch (u8(d)) {
-      case FIELD_FILTER_QUATERNION:
+      case DATA_FILTER_ORIENTATION_QUATERNION:
         decoder.extract(4, &filterData.quaternion[0]);
         decoder.extract(1, &filterData.quaternionStatus);
         filterData.fields |= FilterData::Quaternion;
         break;
-      case FIELD_FILTER_ORIENTATION_EULER:
+      case DATA_FILTER_ORIENTATION_EULER:
         decoder.extract(3, &filterData.eulerRPY[0]);
         decoder.extract(1, &filterData.eulerRPYStatus);
         filterData.fields |= FilterData::OrientationEuler;
         break;
-      case FIELD_FILTER_ACCELERATION:
+      case DATA_FILTER_HEADING_UPDATE:
+        decoder.extract(1, &filterData.heading);
+        decoder.extract(1, &filterData.headingUncertainty);
+        decoder.extract(1, &filterData.headingUpdateSource);
+        decoder.extract(1, &filterData.headingFlags);
+        filterData.fields |= FilterData::HeadingUpdate;
+        break;
+      case DATA_FILTER_ACCELERATION:
         decoder.extract(3, &filterData.acceleration[0]);
         decoder.extract(1, &filterData.accelerationStatus);
         filterData.fields |= FilterData::Acceleration;
         break;
-      case FIELD_FILTER_ANGULAR_RATE:
+      case DATA_FILTER_ANGULAR_RATE:
         decoder.extract(3, &filterData.angularRate[0]);
         decoder.extract(1, &filterData.angularRateStatus);
         filterData.fields |= FilterData::AngularRate;
         break;
-      case FIELD_FILTER_GYRO_BIAS:
+      case DATA_FILTER_GYRO_BIAS:
         decoder.extract(3, &filterData.gyroBias[0]);
         decoder.extract(1, &filterData.gyroBiasStatus);
         filterData.fields |= FilterData::Bias;
         break;
-      case FIELD_FILTER_BIAS_UNCERTAINTY:
-        decoder.extract(3, &filterData.gyroBiasUncertainty[0]);
-        decoder.extract(1, &filterData.gyroBiasUncertaintyStatus);
-        filterData.fields |= FilterData::BiasUncertainty;
-        break;
-      case FIELD_FILTER_ANGLE_UNCERTAINTY:
+      case DATA_FILTER_ANGLE_UNCERTAINTY:
         decoder.extract(3, &filterData.eulerAngleUncertainty[0]);
         decoder.extract(1, &filterData.eulerAngleUncertaintyStatus);
         filterData.fields |= FilterData::AngleUnertainty;
+        break;
+      case DATA_FILTER_BIAS_UNCERTAINTY:
+        decoder.extract(3, &filterData.gyroBiasUncertainty[0]);
+        decoder.extract(1, &filterData.gyroBiasUncertaintyStatus);
+        filterData.fields |= FilterData::BiasUncertainty;
         break;
       default:
         std::stringstream ss;

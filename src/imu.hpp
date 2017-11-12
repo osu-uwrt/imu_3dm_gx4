@@ -184,20 +184,26 @@ public:
     enum {
       Quaternion = (1 << 0),
       OrientationEuler = (1 << 1),
-      Acceleration = (1 << 2),
-      AngularRate = (1 << 3),
-      Bias = (1 << 4),
-      AngleUnertainty = (1 << 5),
-      BiasUncertainty = (1 << 6),
+      HeadingUpdate = (1 << 2),
+      Acceleration = (1 << 3),
+      AngularRate = (1 << 4),
+      Bias = (1 << 5),
+      AngleUnertainty = (1 << 6),
+      BiasUncertainty = (1 << 7),
     };
 
     unsigned int fields; /**< Which fields are present in the struct. */
 
     float quaternion[4]; /**< Orientation quaternion (q0,q1,q2,q3) */
-    uint16_t quaternionStatus; /**< Quaternion status */
+    uint16_t quaternionStatus; /**< 0 = invalid, 1 = valid, 2 = angles referenced to magnetic north */
 
     float eulerRPY[3]; /**< Euler angles (roll,pitch,yaw) [radians] */
     uint16_t eulerRPYStatus; /**< 0 = invalid, 1 = valid, 2 = angles referenced to magnetic north */
+
+    float heading; /**< Heading angle [radians] */
+    float headingUncertainty; /**< 1-sigma heading angle uncertaiy [radians] */
+    uint16_t headingUpdateSource; /**< 0 = none, 1 = internal magnetometer, 4 = external heading update */
+    uint16_t headingFlags; /**< 0 = no update received within 2 sec, 1 = update received within 2 sec */
 
     float acceleration[3]; /**< Linear acceleration [meter/s^2] */
     uint16_t accelerationStatus; /**< 0 = invalid, 1 = valid */
@@ -205,14 +211,14 @@ public:
     float angularRate[3]; /**< Angular velocity [radians/sec] */
     uint16_t angularRateStatus; /**< 0 = invalid, 1 = valid */
 
+    float eulerAngleUncertainty[3];       /**< 1-sigma angle uncertainty for Euler angles due to angle random walk [radians] */
+    uint16_t eulerAngleUncertaintyStatus; /**< 0 = invalid, 1 = valid */
+
     float gyroBias[3];       /**< Gyro bias from sensor frame [radians/sec] */
     uint16_t gyroBiasStatus; /**< Bias status 0 = invalid, 1 = valid */
 
     float gyroBiasUncertainty[3];       /**< 1-sigma gyro bias uncertainty [radians/sec] */
     uint16_t gyroBiasUncertaintyStatus; /**< 0 = invalid, 1 = valid */
-
-    float eulerAngleUncertainty[3];       /**< 1-sigma angle uncertainty for Euler angles due to angle random walk [radians] */
-    uint16_t eulerAngleUncertaintyStatus; /**< 0 = invalid, 1 = valid */
 
     FilterData() : fields(0) {}
   };
@@ -349,7 +355,7 @@ public:
    *
    * @throw invalid_argument if an invalid source is requested.
    */
-  void setFilterDataRate(uint16_t decimation, const std::bitset<7> &sources);
+  void setFilterDataRate(uint16_t decimation, const std::bitset<8> &sources);
 
   /**
    * @brief enableMeasurements Set which measurements to enable in the filter
@@ -400,11 +406,12 @@ public:
    * @brief Set the onboard filter data callback.
    * @note The filter data is called every time new orientation data is read.
    */
-  void
-  setFilterDataCallback(const std::function<void(const Imu::FilterData &)> &);
+  void setFilterDataCallback(const std::function<void(const Imu::FilterData &)> &);
 
   /**
    * @brief Save current settings as startup settings
+   * @param command class command (3DM or Filter)
+   * @param field
    */
   void saveCurrentSettings(uint8_t command, uint8_t field);
 
