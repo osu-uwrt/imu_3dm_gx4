@@ -8,6 +8,7 @@
 #include <sensor_msgs/FluidPressure.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include <string>
 
 #include <imu_3dm_gx4/FilterOutput.h>
 #include "imu.hpp"
@@ -197,6 +198,13 @@ int main(int argc, char **argv) {
   double latitude, longitude, altitude, declination;
   bool enable_sensor_to_vehicle_tf;
 
+  // Variabls for Magnetometer Magnitude Error Adaptive Measurements
+  bool enableMagErrAdaptMsmt;
+  float magLPFBandwidth, magLowLim, magHighLim, magLowLimUncertainty;
+  float magHighLimUncertainty, magMinUncertainty;
+  float LPFBandwidth, lowLim, highLim, lowLimUncertainty;
+  float highLimUncertainty, minUncertainty;
+
   // Load parameters from launch file
   nh.param<std::string>("device", device, "/dev/imu_front");
   nh.param<int>("baudrate", baudrate, 115200);
@@ -220,6 +228,15 @@ int main(int argc, char **argv) {
   nh.param<bool>("enable_sensor_to_vehicle_tf", enable_sensor_to_vehicle_tf, true); //Default is Columbus declination
   nh.param<std::string>("heading_update_source", desiredHeadingUpdateSource, std::string("magnetometer")); //Default is magnetometer
   nh.param<std::string>("declination_source", desiredDeclinationSource, std::string("wmm")); //Default is World Magnetic Model
+
+  // Parameters to adjust Magnetometer Magnitude Error Adaptive Measurement
+  nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
+  nh.param<float>("LPF_bandwidth", magLPFBandwidth, 25);
+  nh.param<float>("low_limit", magLowLim, -0.1);
+  nh.param<float>("high_limit", magHighLim, 0.1);
+  nh.param<float>("low_limit_uncertainty", magLowLimUncertainty, 0.1);
+  nh.param<float>("high_limit_uncertainty", magHighLimUncertainty, 0.1);
+  nh.param<float>("min_uncertainty", magMinUncertainty, 0.1);
 
   if (requestedFilterRate < 0 || requestedImuRate < 0) {
     ROS_ERROR("imu_rate and filter_rate must be > 0");
@@ -310,8 +327,8 @@ int main(int argc, char **argv) {
     imu.setIMUDataCallback(publishData);
     imu.setFilterDataCallback(publishFilter);
 
-    // Set IMU Reference Position Settings///////////////////////////////
-    //Set parameters and display to console thru ROS_INFO
+    // Set IMU Reference Position Settings////////////////////////////////////
+    //Set parameters and display them to console thru ROS_INFO
     //Convert to radians
     desiredRoll *= (PI/180);
     desiredPitch *= (PI/180);
@@ -356,7 +373,29 @@ int main(int argc, char **argv) {
     ROS_INFO("\tCurrent Source: %s", declinationSource.c_str());
     ROS_INFO("\tManual Declination: %f", manualDeclination*180/PI);
     ROS_INFO("\tCurrent Declination: %f", declination);
-    //////////////////////////////////////////////////////////////////////
+
+    // Set Magnetometer Magnitude Error Adaptive Measurement /////////////////
+    ROS_INFO("Setting Mag. Magnitude Err. Adapt Msmt");
+    imu.setMagFilterErrAdaptMsmt(enableMagErrAdaptMsmt, magLPFBandwidth,
+        magLowLim, magHighLim, magLowLimUncertainty, magHighLimUncertainty,
+        magMinUncertainty);
+    ROS_INFO("Set magnetometer filter settings");
+    imu.getMagFilterErrAdaptMsmt(LPFBandwidth, lowLim, highLim,
+      lowLimUncertainty, highLimUncertainty, minUncertainty);
+
+    std::string boolValue = "enabled";
+    if(!enableMagErrAdaptMsmt) {
+      boolValue = "disabled";
+    }
+
+    ROS_INFO("\tEnable Status: %s", boolValue.c_str());
+    ROS_INFO("\tLPF Bandwidth (Hz): %f", LPFBandwidth);
+    ROS_INFO("\tLow Lim (Gauss): %f", lowLim);
+    ROS_INFO("\tHigh Lim (Gauss): %f", highLim);
+    ROS_INFO("\tLow Lim Uncrty (Gauss): %f", lowLimUncertainty);
+    ROS_INFO("\tHigh Lim Uncrty (Gauss): %f", highLimUncertainty);
+    ROS_INFO("\tMin Uncrty (Gauss): %f", minUncertainty);
+    //////////////////////////////////////////////////////////////////////////
 
     // Configure diagnostic updater
     if (!nh.hasParam("diagnostic_period")) {
