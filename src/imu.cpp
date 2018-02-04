@@ -1179,22 +1179,17 @@ void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLi
   uint8_t flag;
   if(!enabled) { //Disable
     flag = 0x00;
-    ROS_INFO("disabling");
     encoder.append(flag);
-    ROS_INFO("disabled");
   } else { //Enable and set parameters
     flag = 0x01;
-    ROS_INFO("enabling");
     encoder.append(flag, LPFBandwidth, lowLim, highLim,
     lowLimUncertainty, highLimUncertainty, minUncertainty);
-    ROS_INFO("enabled");
   }
 
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
-  ROS_INFO("Peter loses or wins");
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
   ROS_INFO("Saved magnetometer magnitude error adaptive msmt settings");
 }
