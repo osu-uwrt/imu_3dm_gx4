@@ -95,6 +95,7 @@ extern "C" {
 #define COMMAND_FILTER_HEADING_UPDATE_CONTROL  u8(0x18)
 #define COMMAND_FILTER_REFERENCE_POSITION      u8(0x26)
 #define COMMAND_FILTER_DECLINATION_SOURCE      u8(0x43)
+#define COMMAND_FILTER_MAG_ERR_ADAPT_MSMT      u8(0x45)
 
 // Estimation Filter Data Sets
 #define DATA_FILTER_ORIENTATION_QUATERNION   u8(0x03)
@@ -111,6 +112,7 @@ extern "C" {
 #define REPLY_FIELD_FILTER_HEADING_UPDATE_CONTROL    u8(0x87)
 #define REPLY_FIELD_FILTER_REFERENCE_POSITION        u8(0x90)
 #define REPLY_FIELD_FILTER_DECLINATION_SOURCE        u8(0xB2)
+#define REPLY_FIELD_FILTER_MAG_ERR_ADAPT_MSMT        u8(0xB4)
 ///////////////////////////////////////////////////////////////////////////////
 
 // General Command Functions
@@ -963,7 +965,7 @@ void Imu::saveCurrentSettings(uint8_t command, uint8_t field) {
   Packet p(command);
   PacketEncoder encoder(p);
   encoder.beginField(field);
-  encoder.append(COMMAND_FUNCTION_SAVE);
+  encoder.append(COMMAND_FUNCTION_SAVE); //Request to save
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
@@ -986,11 +988,12 @@ void Imu::getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1) {
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
-  encoder.append(COMMAND_FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
+  //Extract information
   {
     PacketDecoder decoder(packet_);
     BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_SENSOR_TO_VEHICLE_TF));
@@ -1033,12 +1036,13 @@ void Imu::getHeadingUpdateSource(std::string &headingSource1) {
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_HEADING_UPDATE_CONTROL);
-  encoder.append(COMMAND_FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
   uint8_t source;
+  //Extract information
   {
     PacketDecoder decoder(packet_);
     BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_HEADING_UPDATE_CONTROL));
@@ -1079,12 +1083,13 @@ void Imu::getReferencePosition(double &latitude1, double &longitude1, double &al
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_REFERENCE_POSITION);
-  encoder.append(COMMAND_FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
   uint8_t flag;
+  //Extract information
   {
     PacketDecoder decoder(packet_);
     BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_REFERENCE_POSITION));
@@ -1134,12 +1139,13 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   Packet p(COMMAND_CLASS_FILTER);
   PacketEncoder encoder(p);
   encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
-  encoder.append(COMMAND_FUNCTION_READ);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
   uint8_t source;
+  //Extract information
   {
     PacketDecoder decoder(packet_);
     BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_DECLINATION_SOURCE));
@@ -1159,6 +1165,62 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   }
   else { //Should only reach this point if declinationSource1 was misspelled in "set" function
     declinationSource1 = (std::string)("none"); //Need std::string cast
+  }
+}
+
+void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLim,
+  float highLim, float lowLimUncertainty, float highLimUncertainty,
+  float minUncertainty) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
+  encoder.append(COMMAND_FUNCTION_APPLY);
+
+  uint8_t flag;
+  if(!enabled) { //Disable
+    flag = 0x00;
+    ROS_INFO("disabling");
+    encoder.append(flag);
+    ROS_INFO("disabled");
+  } else { //Enable and set parameters
+    flag = 0x01;
+    ROS_INFO("enabling");
+    encoder.append(flag, LPFBandwidth, lowLim, highLim,
+    lowLimUncertainty, highLimUncertainty, minUncertainty);
+    ROS_INFO("enabled");
+  }
+
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  ROS_INFO("Peter loses or wins");
+  saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
+  ROS_INFO("Saved magnetometer magnitude error adaptive msmt settings");
+}
+
+void Imu::getMagFilterErrAdaptMsmt(float &LPFBandwidth, float &lowLim, float &highLim,
+float &lowLimUncertainty, float &highLimUncertainty, float &minUncertainty) {
+  Packet p(COMMAND_CLASS_FILTER);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  uint8_t enable;
+  //Extract information
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_FILTER_MAG_ERR_ADAPT_MSMT));
+    decoder.extract(1, &enable);
+    decoder.extract(1, &LPFBandwidth);
+    decoder.extract(1, &lowLim);
+    decoder.extract(1, &highLim);
+    decoder.extract(1, &lowLimUncertainty);
+    decoder.extract(1, &highLimUncertainty);
+    decoder.extract(1, &minUncertainty);
   }
 }
 

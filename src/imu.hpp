@@ -458,7 +458,21 @@ public:
    */
   void getDeclinationSource(std::string &declinationSource1, double &declination1);
 
+  /**
+   * @brief Set magnetometer magnitude error adaptive measurement settings
+   * and save as startup settings.
+   */
+  void setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLim,
+    float highLim, float lowLimUncertainty, float highLimUncertainty,
+    float minUncertainty);
 
+  /**
+   * @brief Get magnetometer magnitude error adaptive measurement settings
+   * and save as startup settings.
+   */
+  void getMagFilterErrAdaptMsmt(float &LPFBandwidth, float &lowLim,
+    float &highLim, float &lowLimUncertainty, float &highLimUncertainty,
+    float &minUncertainty);
 
 private:
   //  non-copyable
