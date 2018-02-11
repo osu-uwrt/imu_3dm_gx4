@@ -187,9 +187,10 @@ public:
       HeadingUpdate = (1 << 2),
       Acceleration = (1 << 3),
       AngularRate = (1 << 4),
-      Bias = (1 << 5),
-      AngleUnertainty = (1 << 6),
-      BiasUncertainty = (1 << 7),
+      Magnetometer = (1 << 5),
+      Bias = (1 << 6),
+      AngleUnertainty = (1 << 7),
+      BiasUncertainty = (1 << 8),
     };
 
     unsigned int fields; /**< Which fields are present in the struct. */
@@ -210,6 +211,10 @@ public:
 
     float angularRate[3]; /**< Angular velocity [radians/sec] */
     uint16_t angularRateStatus; /**< 0 = invalid, 1 = valid */
+
+    float magFieldNED[3]; /**< Intensities of x, y, and z components [Gauss] */
+    float magInclination, magDeclination; //**< [Radians] */
+    uint16_t magStatus; /**< 0 = invalid, 1 = valid */
 
     float eulerAngleUncertainty[3];       /**< 1-sigma angle uncertainty for Euler angles due to angle random walk [radians] */
     uint16_t eulerAngleUncertaintyStatus; /**< 0 = invalid, 1 = valid */
@@ -355,7 +360,7 @@ public:
    *
    * @throw invalid_argument if an invalid source is requested.
    */
-  void setFilterDataRate(uint16_t decimation, const std::bitset<8> &sources);
+  void setFilterDataRate(uint16_t decimation, const std::bitset<9> &sources);
 
   /**
    * @brief enableMeasurements Set which measurements to enable in the filter

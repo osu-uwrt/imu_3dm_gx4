@@ -4,13 +4,14 @@
 #include <diagnostic_updater/publisher.h>
 
 #include <sensor_msgs/Imu.h>
-#include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/QuaternionStamped.h>
 #include <string>
+#include <cmath>
 
 #include <imu_3dm_gx4/FilterOutput.h>
+#include <imu_3dm_gx4/MagFieldCF.h>
 #include "imu.hpp"
 
 using namespace imu_3dm_gx4;
@@ -34,7 +35,7 @@ std::shared_ptr<diagnostic_updater::TopicDiagnostic> filterDiag;
 
 void publishData(const Imu::IMUData &data) {
   sensor_msgs::Imu imu;
-  sensor_msgs::MagneticField field;
+  imu_3dm_gx4::MagFieldCF field;
   sensor_msgs::FluidPressure pressure;
 
   //  assume we have all of these since they were requested
@@ -62,9 +63,11 @@ void publishData(const Imu::IMUData &data) {
   imu.angular_velocity.y = data.gyro[1];
   imu.angular_velocity.z = data.gyro[2];
 
-  field.magnetic_field.x = data.mag[0];
-  field.magnetic_field.y = data.mag[1];
-  field.magnetic_field.z = data.mag[2];
+  field.mag_field_components.x = data.mag[0];
+  field.mag_field_components.y = data.mag[1];
+  field.mag_field_components.z = data.mag[2];
+  field.mag_field_magnitude = sqrt(data.mag[0]*data.mag[0] +
+    data.mag[1]*data.mag[1] + data.mag[2]*data.mag[2]);
 
   pressure.fluid_pressure = data.pressure;
 
@@ -89,6 +92,17 @@ void publishFilter(const Imu::FilterData &data) {
   imu_3dm_gx4::FilterOutput output;
   output.header.stamp = ros::Time::now();
   output.header.frame_id = frameId;
+
+  output.mag_field_N = data.magFieldNED[0];
+  output.mag_field_E = data.magFieldNED[1];
+  output.mag_field_D = data.magFieldNED[2];
+  output.mag_field_magnitude = sqrt(data.magFieldNED[0]*data.magFieldNED[0] +
+    data.magFieldNED[1]*data.magFieldNED[1] +
+    data.magFieldNED[2]*data.magFieldNED[2]);
+  output.mag_inclination = data.magInclination;
+  output.mag_declination = data.magDeclination;
+  output.mag_status = data.magStatus;
+
   output.quaternion.w = data.quaternion[0];
   output.quaternion.x = data.quaternion[1];
   output.quaternion.y = data.quaternion[2];
@@ -244,7 +258,7 @@ int main(int argc, char **argv) {
   }
 
   pubIMU = nh.advertise<sensor_msgs::Imu>("imu", 1);
-  pubMag = nh.advertise<sensor_msgs::MagneticField>("magnetic_field", 1);
+  pubMag = nh.advertise<imu_3dm_gx4::MagFieldCF>("magnetic_field", 1);
   pubPressure = nh.advertise<sensor_msgs::FluidPressure>("pressure", 1);
 
   if (enableFilter) {
@@ -304,6 +318,7 @@ int main(int argc, char **argv) {
                           Imu::FilterData::HeadingUpdate |
                           Imu::FilterData::Acceleration |
                           Imu::FilterData::AngularRate |
+                          Imu::FilterData::Magnetometer |
                           Imu::FilterData::Bias |
                           Imu::FilterData::AngleUnertainty |
                           Imu::FilterData::BiasUncertainty);
