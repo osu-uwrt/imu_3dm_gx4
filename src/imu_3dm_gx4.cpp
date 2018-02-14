@@ -212,6 +212,8 @@ int main(int argc, char **argv) {
   double latitude, longitude, altitude, declination;
   bool enable_sensor_to_vehicle_tf;
 
+  int magLPFBandwidth3DM; //LPF bandwidth for 3DM command
+
   // Variabls for Magnetometer Magnitude Error Adaptive Measurements
   bool enableMagErrAdaptMsmt;
   float magLPFBandwidth, magLowLim, magHighLim, magLowLimUncertainty;
@@ -242,6 +244,8 @@ int main(int argc, char **argv) {
   nh.param<bool>("enable_sensor_to_vehicle_tf", enable_sensor_to_vehicle_tf, true); //Default is Columbus declination
   nh.param<std::string>("heading_update_source", desiredHeadingUpdateSource, std::string("magnetometer")); //Default is magnetometer
   nh.param<std::string>("declination_source", desiredDeclinationSource, std::string("wmm")); //Default is World Magnetic Model
+
+  nh.param<int>("mag_LPF_bandwidth", magLPFBandwidth3DM, 1);
 
   // Parameters to adjust Magnetometer Magnitude Error Adaptive Measurement
   nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
@@ -388,6 +392,10 @@ int main(int argc, char **argv) {
     ROS_INFO("\tCurrent Source: %s", declinationSource.c_str());
     ROS_INFO("\tManual Declination: %f", manualDeclination*180/PI);
     ROS_INFO("\tCurrent Declination: %f", declination);
+
+    //Set 3DM Low Pass Filter ////////////////////////////////////////////////
+    ROS_INFO("Setting Mag LPF Bandwidth");
+    imu.setLPFBandwidth("mag", "IIR", "manual", magLPFBandwidth3DM);
 
     // Set Magnetometer Magnitude Error Adaptive Measurement /////////////////
     ROS_INFO("Setting Mag. Magnitude Err. Adapt Msmt");

@@ -464,6 +464,18 @@ public:
   void getDeclinationSource(std::string &declinationSource1, double &declination1);
 
   /**
+   * @brief Set magnetometer LPF bandwidth and save as startup settings.
+   */
+  void setLPFBandwidth(std::string dataType, std::string filterType,
+    std::string config, uint16_t LPFBandwidth);
+
+  /**
+   * @brief Set magnetometer LPF bandwidth and save as startup settings.
+   */
+  void getLPFBandwidth(std::string &dataType, std::string &filterType,
+    std::string &config, uint16_t &LPFBandwidth);
+
+  /**
    * @brief Set magnetometer magnitude error adaptive measurement settings
    * and save as startup settings.
    */

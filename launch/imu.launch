@@ -38,6 +38,9 @@
     <!-- Declination Source (none, wmm, manual)-->
     <arg name="declination_source" default="wmm" />
 
+    <!-- Change Magneometer LPF bandwidth-->
+    <arg name="mag_LPF_bandwidth" default="1" />
+
     <!-- Magnetometer Magnitude Error Adaptive Measurement -->
     <arg name="enable_mag_err_adapt_msmt" default="true" />
 
@@ -57,6 +60,7 @@
         <param name="heading_update_source" type="string" value="$(arg heading_update_source)"/>
         <param name="declination_source" type="string" value="$(arg declination_source)"/>
         <param name="enable_mag_err_adapt_msmt" type="bool" value="$(arg enable_mag_err_adapt_msmt)" />
+        <param name="mag_LPF_bandwidth" type="int" value="$(arg mag_LPF_bandwidth)" />
         <rosparam file="$(find riptide_hardware)/cfg/$(arg location).yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/sensor_to_vehicle_tf.yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/mag_err_adapt_msmt.yaml" command="load"/>

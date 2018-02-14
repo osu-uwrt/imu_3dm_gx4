@@ -71,6 +71,7 @@ extern "C" {
 #define COMMAND_3DM_SET_HARD_IRON           u8(0x3A)
 #define COMMAND_3DM_SET_SOFT_IRON           u8(0x3B)
 #define COMMAND_3DM_DEVICE_STATUS           u8(0x64)
+#define COMMAND_3DM_SET_LPF_BANDWIDTH       u8(0x50)
 
 // 3DM Data Sets
 #define DATA_3DM_ACCELEROMETER       u8(0x04)
@@ -82,6 +83,7 @@ extern "C" {
 #define REPLY_FIELD_3DM_IMU_BASE_RATE        u8(0x83)
 #define REPLY_FIELD_3DM_FILTER_BASE_RATE     u8(0x8A)
 #define REPLY_FIELD_3DM_STATUS_REPORT        u8(0x90)
+#define REPLY_FIELD_3DM_LPF_BANDWIDTH        u8(0x8B)
 
 // 3DM Command - Enable Data Stream Constants
 #define COMMAND_3DM_DEVICE_SELECTOR_IMU          u8(0x01)
@@ -1108,7 +1110,7 @@ void Imu::setDeclinationSource(std::string declinationSource1, double manualDecl
   encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
 
   uint8_t flag;
-  //strcmp() compares to constant char pointers --> convert declinationSource1 to const char*
+  //strcmp() compares two constant char pointers --> convert declinationSource1 to const char*
   if(strcmp(declinationSource1.c_str(), "none") == 0) {
     flag = 0x01; //Source = none
   }
@@ -1168,6 +1170,113 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   else { //Should only reach this point if declinationSource1 was misspelled in "set" function
     declinationSource1 = (std::string)("none"); //Need std::string cast
   }
+}
+
+//Set low pass filter bandwidth for a given data type
+//Date type: accel, mag, gyro, pressure
+void Imu::setLPFBandwidth(std::string dataType, std::string filterType,
+  std::string config, uint16_t LPFBandwidth) {
+  Packet p(COMMAND_CLASS_3DM);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_3DM_SET_LPF_BANDWIDTH);
+
+  uint8_t descriptor;
+  //Determine descriptor
+  //strcmp() compares two constant char pointers --> convert dataType to const char*
+  if(strcmp(dataType.c_str(), "accel") == 0) {
+    descriptor = 0x04;
+  }
+  else if( strcmp(dataType.c_str(), "gyro") == 0) {
+    descriptor = 0x05;
+  }
+  else if(strcmp(dataType.c_str(), "mag") == 0){
+    descriptor = 0x06;
+  }
+  else if(strcmp(dataType.c_str(), "pressure") == 0){
+    descriptor = 0x17;
+  }
+  else {
+    descriptor = 0x05; //Default is mag
+  }
+
+  uint8_t type, cfg, reserved;
+  reserved = 0x00; //Reserved byte MUST be set to 0x00
+
+  //Determine filter Type: IIR or none
+  if(strcmp(filterType.c_str(), "IIR") == 0) {
+    type = 0x01; //Single pole IIR LPF
+  }
+  else if( strcmp(filterType.c_str(), "none") == 0) {
+    type = 0x00;
+  }
+  else {
+    type = 0x01; //Default is IIR
+  }
+
+  //Determine config type: manual or auto
+  if(strcmp(config.c_str(), "manual") == 0) {
+    cfg = 0x01;
+  }
+  else if( strcmp(config.c_str(), "auto") == 0) {
+    cfg = 0x00; //Auto --> one-half reporting frequency
+  }
+  else {
+    cfg = 0x00; //Default is auto
+  }
+
+  ROS_INFO("About to append values");
+  encoder.append(COMMAND_FUNCTION_APPLY, descriptor, type, cfg, LPFBandwidth, reserved);
+
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  ROS_INFO("About to save");
+  //saveCurrentSettings(COMMAND_CLASS_3DM, COMMAND_3DM_SET_LPF_BANDWIDTH);
+  ROS_INFO("Saved %s LPF bandwidth settings", dataType.c_str());
+
+}
+
+void Imu::getLPFBandwidth(std::string &dataType,std::string &filterType,
+  std::string &config, uint16_t &LPFBandwidth) {
+  Packet p(COMMAND_CLASS_3DM);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_3DM_SET_LPF_BANDWIDTH);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  //Extract information
+  uint8_t descriptor, type, cfg, reserved;
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_3DM_LPF_BANDWIDTH));
+    decoder.extract(1, &descriptor);
+    decoder.extract(1, &type);
+    decoder.extract(1, &cfg);
+    decoder.extract(1, &LPFBandwidth);
+    decoder.extract(1, &reserved);
+  }
+
+  if(descriptor == 0x04)
+    dataType = (std::string)("accel");
+  else if(descriptor == 0x05)
+    dataType = (std::string)("gyro");
+  else if(descriptor == 0x06)
+    dataType = (std::string)("mag");
+  else if(descriptor == 0x17)
+    dataType = (std::string)("pressure");
+
+  if(type == 0x01)
+    filterType = (std::string)("IIR");
+  else if (type == 0x00)
+    filterType = (std::string)("none");
+
+  if(cfg == 0x01)
+    config = (std::string)("manual");
+  else if(cfg == 0x00)
+    config = (std::string)("auto");
 }
 
 void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLim,
