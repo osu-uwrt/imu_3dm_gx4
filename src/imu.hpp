@@ -187,10 +187,9 @@ public:
       HeadingUpdate = (1 << 2),
       Acceleration = (1 << 3),
       AngularRate = (1 << 4),
-      Magnetometer = (1 << 5),
-      Bias = (1 << 6),
-      AngleUnertainty = (1 << 7),
-      BiasUncertainty = (1 << 8),
+      Bias = (1 << 5),
+      AngleUnertainty = (1 << 6),
+      BiasUncertainty = (1 << 7),
     };
 
     unsigned int fields; /**< Which fields are present in the struct. */
@@ -201,20 +200,16 @@ public:
     float eulerRPY[3]; /**< Euler angles (roll,pitch,yaw) [radians] */
     uint16_t eulerRPYStatus; /**< 0 = invalid, 1 = valid, 2 = angles referenced to magnetic north */
 
-    float heading; /**< Heading angle [radians] */
-    float headingUncertainty; /**< 1-sigma heading angle uncertaiy [radians] */
+    float headingUpdate; /**< Heading angle [radians] */
+    float headingUpdateUncertainty; /**< 1-sigma heading angle uncertaiy [radians] */
     uint16_t headingUpdateSource; /**< 0 = none, 1 = internal magnetometer, 4 = external heading update */
-    uint16_t headingFlags; /**< 0 = no update received within 2 sec, 1 = update received within 2 sec */
+    uint16_t headingUpdateFlags; /**< 0 = no update received within 2 sec, 1 = update received within 2 sec */
 
     float acceleration[3]; /**< Linear acceleration [meter/s^2] */
     uint16_t accelerationStatus; /**< 0 = invalid, 1 = valid */
 
     float angularRate[3]; /**< Angular velocity [radians/sec] */
     uint16_t angularRateStatus; /**< 0 = invalid, 1 = valid */
-
-    float magFieldNED[3]; /**< Intensities of x, y, and z components [Gauss] */
-    float magInclination, magDeclination; //**< [Radians] */
-    uint16_t magStatus; /**< 0 = invalid, 1 = valid */
 
     float eulerAngleUncertainty[3];       /**< 1-sigma angle uncertainty for Euler angles due to angle random walk [radians] */
     uint16_t eulerAngleUncertaintyStatus; /**< 0 = invalid, 1 = valid */

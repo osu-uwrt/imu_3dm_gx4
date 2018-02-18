@@ -9,15 +9,6 @@ std_msgs/Header header
 #
 # Note that covariance on orientation becomes invalid as pitch angle exceeds 70 # degrees. This will be indicated by the status flag.
 
-# Magnetic Field Model (From World Magnetometer Model)
-float64 mag_field_N # Gauss
-float64 mag_field_E # Gauss
-float64 mag_field_D # Gauss
-float64 mag_field_magnitude # Gauss
-float64 mag_inclination # Degrees
-float64 mag_declination # Degrees
-uint16 mag_status # 0 = invalid, 1 = valid
-
 # Quaternion, and status
 geometry_msgs/Quaternion quaternion
 uint16 quaternion_status
@@ -29,10 +20,10 @@ float64[9] euler_angle_covariance
 uint16 euler_angle_covariance_status
 
 # Heading Update Data
-float64 heading #Heading in [radians]
-float64 heading_uncertainty #1-sigma heading uncertainty
+float64 heading_update #Heading in [radians]
+float64 heading_update_uncertainty #1-sigma heading uncertainty
 float64 heading_update_source
-float64 heading_flags #0 = no update received within 2 sec, 1 = update received within 2 sec
+float64 heading_update_flags #0 = no update received within 2 sec, 1 = update received within 2 sec
 
 # Gyro bias, diagonal covariance, and status
 geometry_msgs/Vector3 gyro_bias #Gyro bias from sensor frame [radians/sec]

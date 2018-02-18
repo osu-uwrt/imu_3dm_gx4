@@ -105,7 +105,6 @@ extern "C" {
 #define DATA_FILTER_HEADING_UPDATE           u8(0x14)
 #define DATA_FILTER_ACCELERATION             u8(0x0D)
 #define DATA_FILTER_ANGULAR_RATE             u8(0x0E)
-#define DATA_FILTER_MAGNETOMETER             u8(0x15)
 #define DATA_FILTER_GYRO_BIAS                u8(0x06)
 #define DATA_FILTER_ANGLE_UNCERTAINTY        u8(0x0A)
 #define DATA_FILTER_BIAS_UNCERTAINTY         u8(0x0B)
@@ -848,7 +847,6 @@ void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<9> &sources) 
                                         DATA_FILTER_HEADING_UPDATE,
                                         DATA_FILTER_ACCELERATION,
                                         DATA_FILTER_ANGULAR_RATE,
-                                        DATA_FILTER_MAGNETOMETER,
                                         DATA_FILTER_GYRO_BIAS,
                                         DATA_FILTER_ANGLE_UNCERTAINTY,
                                         DATA_FILTER_BIAS_UNCERTAINTY };
@@ -1526,10 +1524,10 @@ void Imu::processPacket() {
         filterData.fields |= FilterData::OrientationEuler;
         break;
       case DATA_FILTER_HEADING_UPDATE:
-        decoder.extract(1, &filterData.heading);
-        decoder.extract(1, &filterData.headingUncertainty);
+        decoder.extract(1, &filterData.headingUpdate);
+        decoder.extract(1, &filterData.headingUpdateUncertainty);
         decoder.extract(1, &filterData.headingUpdateSource);
-        decoder.extract(1, &filterData.headingFlags);
+        decoder.extract(1, &filterData.headingUpdateFlags);
         filterData.fields |= FilterData::HeadingUpdate;
         break;
       case DATA_FILTER_ACCELERATION:
@@ -1541,13 +1539,6 @@ void Imu::processPacket() {
         decoder.extract(3, &filterData.angularRate[0]);
         decoder.extract(1, &filterData.angularRateStatus);
         filterData.fields |= FilterData::AngularRate;
-        break;
-      case DATA_FILTER_MAGNETOMETER:
-        decoder.extract(3, &filterData.magFieldNED[0]);
-        decoder.extract(1, &filterData.magInclination);
-        decoder.extract(1, &filterData.magDeclination);
-        decoder.extract(1, &filterData.magStatus);
-        filterData.fields |= FilterData::Magnetometer;
         break;
       case DATA_FILTER_GYRO_BIAS:
         decoder.extract(3, &filterData.gyroBias[0]);

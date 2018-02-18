@@ -93,16 +93,6 @@ void publishFilter(const Imu::FilterData &data) {
   output.header.stamp = ros::Time::now();
   output.header.frame_id = frameId;
 
-  output.mag_field_N = data.magFieldNED[0];
-  output.mag_field_E = data.magFieldNED[1];
-  output.mag_field_D = data.magFieldNED[2];
-  output.mag_field_magnitude = sqrt(data.magFieldNED[0]*data.magFieldNED[0] +
-    data.magFieldNED[1]*data.magFieldNED[1] +
-    data.magFieldNED[2]*data.magFieldNED[2]);
-  output.mag_inclination = data.magInclination;
-  output.mag_declination = data.magDeclination;
-  output.mag_status = data.magStatus;
-
   output.quaternion.w = data.quaternion[0];
   output.quaternion.x = data.quaternion[1];
   output.quaternion.y = data.quaternion[2];
@@ -132,10 +122,10 @@ void publishFilter(const Imu::FilterData &data) {
   output.gyro_bias_covariance[8] = data.gyroBiasUncertainty[2]*data.gyroBiasUncertainty[2];
   output.gyro_bias_covariance_status = data.gyroBiasUncertaintyStatus;
 
-  output.heading = data.heading;
-  output.heading_uncertainty = data.headingUncertainty;
+  output.heading_update = data.headingUpdate;
+  output.heading_update_uncertainty = data.headingUpdateUncertainty;
   output.heading_update_source = data.headingUpdateSource;
-  output.heading_flags = data.headingFlags;
+  output.heading_update_flags = data.headingUpdateFlags;
 
   output.linear_acceleration.x = data.acceleration[0];
   output.linear_acceleration.y = data.acceleration[1];
@@ -322,7 +312,6 @@ int main(int argc, char **argv) {
                           Imu::FilterData::HeadingUpdate |
                           Imu::FilterData::Acceleration |
                           Imu::FilterData::AngularRate |
-                          Imu::FilterData::Magnetometer |
                           Imu::FilterData::Bias |
                           Imu::FilterData::AngleUnertainty |
                           Imu::FilterData::BiasUncertainty);
