@@ -838,7 +838,7 @@ void Imu::setIMUDataRate(uint16_t decimation,
   sendCommand(p);
 }
 
-void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<9> &sources) {
+void Imu::setFilterDataRate(uint16_t decimation, const std::bitset<8> &sources) {
   Imu::Packet p(COMMAND_CLASS_3DM);  //  was 0x04
   PacketEncoder encoder(p);
 
@@ -983,7 +983,6 @@ void Imu::setSensorToVehicleTF(float roll1, float pitch1, float yaw1) {
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
-  ROS_INFO("Saved sensor to vehicle frame transformation settings");
 }
 
 void Imu::getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1) {
@@ -1031,7 +1030,6 @@ void Imu::setHeadingUpdateSource(std::string headingSource1) {
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_HEADING_UPDATE_CONTROL);
-  ROS_INFO("Saved heading update settings");
 }
 
 void Imu::getHeadingUpdateSource(std::string &headingSource1) {
@@ -1078,7 +1076,6 @@ void Imu::setReferencePosition(double latitude1, double longitude1, double altit
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_REFERENCE_POSITION);
-  ROS_INFO("Saved reference position settings");
 }
 
 void Imu::getReferencePosition(double &latitude1, double &longitude1, double &altitude1) {
@@ -1134,7 +1131,6 @@ void Imu::setDeclinationSource(std::string declinationSource1, double manualDecl
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_DECLINATION_SOURCE);
-  ROS_INFO("Saved declination source settings");
 }
 
 void Imu::getDeclinationSource(std::string &declinationSource1, double &declination1) {
@@ -1222,20 +1218,15 @@ void Imu::setLPFBandwidth(std::string dataType, std::string filterType,
     cfg = 0x00; //Default is auto
   }
 
-  ROS_INFO("About to append values");
   encoder.append(COMMAND_FUNCTION_APPLY, descriptor, type, cfg, LPFBandwidth, reserved);
-
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
-  ROS_INFO("About to save");
   //saveCurrentSettings(COMMAND_CLASS_3DM, COMMAND_3DM_SET_LPF_BANDWIDTH);
-  ROS_INFO("Saved %s LPF bandwidth settings", dataType.c_str());
-
 }
 
-void Imu::getLPFBandwidth(std::string &dataType,std::string &filterType,
+void Imu::getLPFBandwidth(std::string &dataType, std::string &filterType,
   std::string &config, uint16_t &LPFBandwidth) {
   Packet p(COMMAND_CLASS_3DM);
   PacketEncoder encoder(p);
@@ -1300,7 +1291,6 @@ void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLi
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
-  ROS_INFO("Saved magnetometer magnitude error adaptive msmt settings");
 }
 
 void Imu::getMagFilterErrAdaptMsmt(float &LPFBandwidth, float &lowLim, float &highLim,

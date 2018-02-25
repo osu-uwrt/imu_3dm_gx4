@@ -187,22 +187,19 @@ int main(int argc, char **argv) {
 
   std::string device;
   int baudrate;
-  bool enableFilter;
   bool enableMagUpdate, enableAccelUpdate;
   int requestedImuRate, requestedFilterRate;
   bool verbose;
 
   // Variables for IMU reference position
-  std::string desiredHeadingUpdateSource, desiredDeclinationSource;
   std::string headingUpdateSource, declinationSource;
   std::string location;
-  float desiredRoll, desiredPitch, desiredYaw;
   float roll, pitch, yaw;
-  double desiredLatitude, desiredLongitude, desiredAltitude, manualDeclination;
-  double latitude, longitude, altitude, declination;
+  double latitude, longitude, altitude, manualDeclination;
   bool enable_sensor_to_vehicle_tf;
 
-  int magLPFBandwidth3DM; //LPF bandwidth for 3DM command
+  // Sensor LPF Bandwidths
+  int magLPFBandwidth3DM, accelLPFBandwidth3DM;
 
   // Variabls for Magnetometer Magnitude Error Adaptive Measurements
   bool enableMagErrAdaptMsmt;
@@ -217,25 +214,25 @@ int main(int argc, char **argv) {
   nh.param<std::string>("frame_id", frameId, std::string("imu"));
   nh.param<int>("imu_rate", requestedImuRate, 100);
   nh.param<int>("filter_rate", requestedFilterRate, 100);
-  nh.param<bool>("enable_filter", enableFilter, true);
   nh.param<bool>("enable_mag_update", enableMagUpdate, true);
   nh.param<bool>("enable_accel_update", enableAccelUpdate, true);
   nh.param<bool>("verbose", verbose, false);
 
   // Additional parameters - used to set IMU reference position
   nh.param<std::string>("location", location, (std::string)"columbus");
-  nh.param<double>("latitude", desiredLatitude, 39.9984f); //Default is Columbus latitude
-  nh.param<double>("longitude", desiredLongitude, -83.0179f); //Default is Columbus longitude
-  nh.param<double>("altitude", desiredAltitude, 224.0f); //Default is Columbus altitude
+  nh.param<double>("latitude", latitude, 39.9984f); //Default is Columbus latitude
+  nh.param<double>("longitude", longitude, -83.0179f); //Default is Columbus longitude
+  nh.param<double>("altitude", altitude, 224.0f); //Default is Columbus altitude
   nh.param<double>("declination", manualDeclination, 7.01f); //Default is Columbus declination
-  nh.param<float>("roll", desiredRoll, 0.0f); //Default is 0.0
-  nh.param<float>("pitch", desiredPitch, -90.0f); //Default is -90.0
-  nh.param<float>("yaw", desiredYaw, 180.0f); //Default is 180.0
+  nh.param<float>("roll", roll, 0.0f); //Default is 0.0
+  nh.param<float>("pitch", pitch, -90.0f); //Default is -90.0
+  nh.param<float>("yaw", yaw, 180.0f); //Default is 180.0
   nh.param<bool>("enable_sensor_to_vehicle_tf", enable_sensor_to_vehicle_tf, true); //Default is Columbus declination
-  nh.param<std::string>("heading_update_source", desiredHeadingUpdateSource, std::string("magnetometer")); //Default is magnetometer
-  nh.param<std::string>("declination_source", desiredDeclinationSource, std::string("wmm")); //Default is World Magnetic Model
+  nh.param<std::string>("heading_update_source", headingUpdateSource, std::string("magnetometer")); //Default is magnetometer
+  nh.param<std::string>("declination_source", declinationSource, std::string("manual")); //Default is World Magnetic Model
 
   nh.param<int>("mag_LPF_bandwidth", magLPFBandwidth3DM, 1);
+  nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 50);
 
   // Parameters to adjust Magnetometer Magnitude Error Adaptive Measurement
   nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
@@ -244,7 +241,7 @@ int main(int argc, char **argv) {
   nh.param<float>("high_limit", magHighLim, 0.1);
   nh.param<float>("low_limit_uncertainty", magLowLimUncertainty, 0.1);
   nh.param<float>("high_limit_uncertainty", magHighLimUncertainty, 0.1);
-  nh.param<float>("min_uncertainty", magMinUncertainty, 0.1);
+  nh.param<float>("min_uncertainty", magMinUncertainty, 0.05);
 
   if (requestedFilterRate < 0 || requestedImuRate < 0) {
     ROS_ERROR("imu_rate and filter_rate must be > 0");
@@ -254,10 +251,7 @@ int main(int argc, char **argv) {
   pubIMU = nh.advertise<sensor_msgs::Imu>("imu", 1);
   pubMag = nh.advertise<imu_3dm_gx4::MagFieldCF>("magnetic_field", 1);
   pubPressure = nh.advertise<sensor_msgs::FluidPressure>("pressure", 1);
-
-  if (enableFilter) {
-    pubFilter = nh.advertise<imu_3dm_gx4::FilterOutput>("filter", 1);
-  }
+  pubFilter = nh.advertise<imu_3dm_gx4::FilterOutput>("filter", 1);
 
   // Ceate new instance of the IMU
   Imu imu(device, verbose);
@@ -319,79 +313,59 @@ int main(int argc, char **argv) {
     ROS_INFO("Enabling IMU data stream");
     imu.enableIMUStream(true);
 
-    if (enableFilter) {
-      ROS_INFO("Enabling filter data stream");
-      imu.enableFilterStream(true);
 
-      ROS_INFO("Enabling filter measurements");
-      imu.enableMeasurements(enableAccelUpdate, enableMagUpdate);
+    ROS_INFO("Enabling filter data stream");
+    imu.enableFilterStream(true);
 
-      ROS_INFO("Enabling gyro bias estimation");
-      imu.enableBiasEstimation(true);
-    } else {
-      ROS_INFO("Disabling filter data stream");
-      imu.enableFilterStream(false);
-    }
+    ROS_INFO("Enabling filter measurements");
+    imu.enableMeasurements(enableAccelUpdate, enableMagUpdate);
+
+    ROS_INFO("Enabling gyro bias estimation");
+    imu.enableBiasEstimation(true);
+
     imu.setIMUDataCallback(publishData);
     imu.setFilterDataCallback(publishFilter);
 
-    // Set IMU Reference Position Settings////////////////////////////////////
+    // Additional IMU Settings //////////////////////////////////////////////
     //Set parameters and display them to console thru ROS_INFO
     //Convert to radians
-    desiredRoll *= (PI/180);
-    desiredPitch *= (PI/180);
-    desiredYaw *= (PI/180);
+    roll *= (PI/180);
+    pitch *= (PI/180);
+    yaw *= (PI/180);
     manualDeclination *= (PI/180);
 
     ROS_INFO("Location = %s", location.c_str());
-    ROS_INFO("Setting Sensor to Vehicle Frame Transformation");
-    imu.setSensorToVehicleTF(desiredRoll, desiredPitch, desiredYaw);
-    imu.getSensorToVehicleTF(roll, pitch, yaw);
-    roll *= (180/PI); //convert to degrees
-    pitch *= (180/PI); //convert to degrees
-    yaw *= (180/PI); //convert to degrees
-    ROS_INFO("\tDesired Roll: %f", desiredRoll*180/PI);
-    ROS_INFO("\tDesired Pitch: %f", desiredPitch*180/PI);
-    ROS_INFO("\tDesired Yaw: %f", desiredYaw*180/PI);
-    ROS_INFO("\tCurrent Roll: %f", roll);
-    ROS_INFO("\tCurrent Pitch: %f", pitch);
-    ROS_INFO("\tCurrent Yaw: %f", yaw);
+    ROS_INFO("Sensor to Vehicle Frame Transformation");
+    imu.setSensorToVehicleTF(roll, pitch, yaw);
+    ROS_INFO("\tRoll (deg): %f", roll*180/PI);
+    ROS_INFO("\tPitch (deg): %f", pitch*180/PI);
+    ROS_INFO("\tYaw (deg): %f", yaw*180/PI);
 
-    ROS_INFO("Setting Heading Update Source");
-    imu.setHeadingUpdateSource(desiredHeadingUpdateSource);
-    imu.getHeadingUpdateSource(headingUpdateSource);
-    ROS_INFO("\tDesired Source: %s", desiredHeadingUpdateSource.c_str());
-    ROS_INFO("\tCurrent Source: %s", headingUpdateSource.c_str());
+    ROS_INFO("Heading Update Source");
+    imu.setHeadingUpdateSource(headingUpdateSource);
+    ROS_INFO("\tUpate Source: %s", headingUpdateSource.c_str());
 
-    ROS_INFO("Setting Reference Position");
-    imu.setReferencePosition(desiredLatitude, desiredLongitude, desiredAltitude);
-    imu.getReferencePosition(latitude, longitude, altitude);
-    ROS_INFO("\tDesired Latitude: %f", desiredLatitude);
-    ROS_INFO("\tDesired Longitude: %f", desiredLongitude);
-    ROS_INFO("\tDesired Altitude: %f", desiredAltitude);
-    ROS_INFO("\tCurrent Latitude: %f", latitude);
-    ROS_INFO("\tCurrent Longitude: %f", longitude);
-    ROS_INFO("\tCurrent Altitude: %f", altitude);
+    ROS_INFO("Reference Position");
+    imu.setReferencePosition(latitude, longitude, altitude);
+    ROS_INFO("\tLatitude (deg): %f", latitude);
+    ROS_INFO("\tLongitude (deg): %f", longitude);
+    ROS_INFO("\tAltitude (m): %f", altitude);
 
-    ROS_INFO("Setting Declination Source");
-    imu.setDeclinationSource(desiredDeclinationSource, manualDeclination);
-    imu.getDeclinationSource(declinationSource, declination);
-    declination *= (180/PI);
-    ROS_INFO("\tDesired Source: %s", desiredDeclinationSource.c_str());
-    ROS_INFO("\tCurrent Source: %s", declinationSource.c_str());
-    ROS_INFO("\tManual Declination: %f", manualDeclination*180/PI);
-    ROS_INFO("\tCurrent Declination: %f", declination);
+    ROS_INFO("Declination Source");
+    imu.setDeclinationSource(declinationSource, manualDeclination);
+    ROS_INFO("\tDec Source: %s", declinationSource.c_str());
+    ROS_INFO("\tManual Dec (deg): %f", manualDeclination*180/PI);
 
-    //Set 3DM Low Pass Filter ////////////////////////////////////////////////
-    ROS_INFO("Setting Mag LPF Bandwidth");
+    ROS_INFO("Sensor LPF Bandwidths");
     imu.setLPFBandwidth("mag", "IIR", "manual", magLPFBandwidth3DM);
+    imu.setLPFBandwidth("accel", "IIR", "manual", accelLPFBandwidth3DM);
+    ROS_INFO("\tMag LPF (Hz): %i", magLPFBandwidth3DM);
+    ROS_INFO("\tAccel LPF (Hz): %i", accelLPFBandwidth3DM);
 
-    // Set Magnetometer Magnitude Error Adaptive Measurement /////////////////
-    ROS_INFO("Setting Mag. Magnitude Err. Adapt Msmt");
+    ROS_INFO("Magnetometer Magnitude Err. Adapt Msmt");
     imu.setMagFilterErrAdaptMsmt(enableMagErrAdaptMsmt, magLPFBandwidth,
         magLowLim, magHighLim, magLowLimUncertainty, magHighLimUncertainty,
         magMinUncertainty);
-    ROS_INFO("Set magnetometer filter settings");
     imu.getMagFilterErrAdaptMsmt(LPFBandwidth, lowLim, highLim,
       lowLimUncertainty, highLimUncertainty, minUncertainty);
 
@@ -422,9 +396,7 @@ int main(int argc, char **argv) {
     double imuRate = imuBaseRate / (1.0 * imuDecimation);
     double filterRate = filterBaseRate / (1.0 * filterDecimation);
     imuDiag = configTopicDiagnostic("imu",&imuRate);
-    if (enableFilter) {
-      filterDiag = configTopicDiagnostic("filter",&filterRate);
-    }
+    filterDiag = configTopicDiagnostic("filter",&filterRate);
 
     updater->add("diagnostic_info",
                  boost::bind(&updateDiagnosticInfo, _1, &imu));

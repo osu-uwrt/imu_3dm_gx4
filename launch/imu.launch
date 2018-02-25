@@ -19,9 +19,6 @@
     <arg name="imu_rate" default="100"/>
     <arg name="filter_rate" default="100"/>
 
-    <!-- Enable/Disable the filter -->
-    <arg name="enable_filter" default="true"/>
-
     <!-- Enable/Disable filter updates -->
     <arg name="enable_accel_update" default="true"/>
     <arg name="enable_mag_update" default="true"/>
@@ -29,20 +26,18 @@
     <!-- Reference Location -->
     <arg name="location" default="columbus"/>
 
-    <!--Enable input of sensor to vehicel frame transformation -->
-    <arg name="enable_sensor_to_vehicle_tf" default="true" />
-
     <!-- Heading Update Source (none, magnetometer, external)-->
     <arg name="heading_update_source" default="magnetometer" />
 
     <!-- Declination Source (none, wmm, manual)-->
     <arg name="declination_source" default="wmm" />
 
-    <!-- Change Magneometer LPF bandwidth-->
+    <!-- Change Sensor LPF bandwidths -->
     <arg name="mag_LPF_bandwidth" default="1" />
+    <arg name="accel_LPF_bandwidth" default="50" />
 
     <!-- Magnetometer Magnitude Error Adaptive Measurement -->
-    <arg name="enable_mag_err_adapt_msmt" default="true" />
+    <arg name="enable_mag_err_adapt_msmt" default="false" />
 
     <node pkg="imu_3dm_gx4" name="$(arg imu)" type="imu_3dm_gx4" output="$(arg output)">
         <param name="device" type="string" value="$(arg device)" />
@@ -51,16 +46,15 @@
         <param name="frame_id" type="string" value="$(arg frame_id)"/>
         <param name="imu_rate" type="int" value="$(arg imu_rate)" />
         <param name="filter_rate" type="int" value="$(arg filter_rate)"/>
-        <param name="enable_filter" type="bool" value="$(arg enable_filter)"/>
         <param name="enable_accel_update" type="bool" value="$(arg enable_accel_update)"/>
         <param name="enable_mag_update" type="bool" value="$(arg enable_mag_update)"/>
 
         <param name="location" type="string" value="$(arg location)" />
-        <param name="enable_sensor_to_vehicle_tf" type="bool" value="$(arg enable_sensor_to_vehicle_tf)" />
         <param name="heading_update_source" type="string" value="$(arg heading_update_source)"/>
         <param name="declination_source" type="string" value="$(arg declination_source)"/>
         <param name="enable_mag_err_adapt_msmt" type="bool" value="$(arg enable_mag_err_adapt_msmt)" />
         <param name="mag_LPF_bandwidth" type="int" value="$(arg mag_LPF_bandwidth)" />
+        <param name="accel_LPF_bandwidth" type="int" value="$(arg accel_LPF_bandwidth)" />
         <rosparam file="$(find riptide_hardware)/cfg/$(arg location).yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/sensor_to_vehicle_tf.yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/mag_err_adapt_msmt.yaml" command="load"/>

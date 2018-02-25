@@ -355,7 +355,7 @@ public:
    *
    * @throw invalid_argument if an invalid source is requested.
    */
-  void setFilterDataRate(uint16_t decimation, const std::bitset<9> &sources);
+  void setFilterDataRate(uint16_t decimation, const std::bitset<8> &sources);
 
   /**
    * @brief enableMeasurements Set which measurements to enable in the filter
