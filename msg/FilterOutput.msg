@@ -9,7 +9,6 @@ std_msgs/Header header
 #
 # Note that covariance on orientation becomes invalid as pitch angle exceeds 70 # degrees. This will be indicated by the status flag.
 
-
 # Quaternion, and status
 geometry_msgs/Quaternion quaternion
 uint16 quaternion_status
@@ -20,11 +19,11 @@ float64 euler_rpy_status
 float64[9] euler_angle_covariance
 uint16 euler_angle_covariance_status
 
-#Heading Update Data
-float64 heading #Heading in [radians]
-float64 heading_uncertainty #1-sigma heading uncertainty
+# Heading Update Data
+float64 heading_update #Heading in [radians]
+float64 heading_update_uncertainty #1-sigma heading uncertainty
 float64 heading_update_source
-float64 heading_flags #0 = no update received within 2 sec, 1 = update received within 2 sec
+float64 heading_update_flags #0 = no update received within 2 sec, 1 = update received within 2 sec
 
 # Gyro bias, diagonal covariance, and status
 geometry_msgs/Vector3 gyro_bias #Gyro bias from sensor frame [radians/sec]

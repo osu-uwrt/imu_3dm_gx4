@@ -71,6 +71,7 @@ extern "C" {
 #define COMMAND_3DM_SET_HARD_IRON           u8(0x3A)
 #define COMMAND_3DM_SET_SOFT_IRON           u8(0x3B)
 #define COMMAND_3DM_DEVICE_STATUS           u8(0x64)
+#define COMMAND_3DM_SET_LPF_BANDWIDTH       u8(0x50)
 
 // 3DM Data Sets
 #define DATA_3DM_ACCELEROMETER       u8(0x04)
@@ -82,6 +83,7 @@ extern "C" {
 #define REPLY_FIELD_3DM_IMU_BASE_RATE        u8(0x83)
 #define REPLY_FIELD_3DM_FILTER_BASE_RATE     u8(0x8A)
 #define REPLY_FIELD_3DM_STATUS_REPORT        u8(0x90)
+#define REPLY_FIELD_3DM_LPF_BANDWIDTH        u8(0x8B)
 
 // 3DM Command - Enable Data Stream Constants
 #define COMMAND_3DM_DEVICE_SELECTOR_IMU          u8(0x01)
@@ -981,7 +983,6 @@ void Imu::setSensorToVehicleTF(float roll1, float pitch1, float yaw1) {
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_SENSOR_TO_VEHICLE_TF);
-  ROS_INFO("Saved sensor to vehicle frame transformation settings");
 }
 
 void Imu::getSensorToVehicleTF(float &roll1, float &pitch1, float &yaw1) {
@@ -1029,7 +1030,6 @@ void Imu::setHeadingUpdateSource(std::string headingSource1) {
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_HEADING_UPDATE_CONTROL);
-  ROS_INFO("Saved heading update settings");
 }
 
 void Imu::getHeadingUpdateSource(std::string &headingSource1) {
@@ -1076,7 +1076,6 @@ void Imu::setReferencePosition(double latitude1, double longitude1, double altit
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_REFERENCE_POSITION);
-  ROS_INFO("Saved reference position settings");
 }
 
 void Imu::getReferencePosition(double &latitude1, double &longitude1, double &altitude1) {
@@ -1106,7 +1105,7 @@ void Imu::setDeclinationSource(std::string declinationSource1, double manualDecl
   encoder.beginField(COMMAND_FILTER_DECLINATION_SOURCE);
 
   uint8_t flag;
-  //strcmp() compares to constant char pointers --> convert declinationSource1 to const char*
+  //strcmp() compares two constant char pointers --> convert declinationSource1 to const char*
   if(strcmp(declinationSource1.c_str(), "none") == 0) {
     flag = 0x01; //Source = none
   }
@@ -1132,7 +1131,6 @@ void Imu::setDeclinationSource(std::string declinationSource1, double manualDecl
   sendCommand(p);
 
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_DECLINATION_SOURCE);
-  ROS_INFO("Saved declination source settings");
 }
 
 void Imu::getDeclinationSource(std::string &declinationSource1, double &declination1) {
@@ -1168,6 +1166,108 @@ void Imu::getDeclinationSource(std::string &declinationSource1, double &declinat
   }
 }
 
+//Set low pass filter bandwidth for a given data type
+//Date type: accel, mag, gyro, pressure
+void Imu::setLPFBandwidth(std::string dataType, std::string filterType,
+  std::string config, uint16_t LPFBandwidth) {
+  Packet p(COMMAND_CLASS_3DM);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_3DM_SET_LPF_BANDWIDTH);
+
+  uint8_t descriptor;
+  //Determine descriptor
+  //strcmp() compares two constant char pointers --> convert dataType to const char*
+  if(strcmp(dataType.c_str(), "accel") == 0) {
+    descriptor = 0x04;
+  }
+  else if( strcmp(dataType.c_str(), "gyro") == 0) {
+    descriptor = 0x05;
+  }
+  else if(strcmp(dataType.c_str(), "mag") == 0){
+    descriptor = 0x06;
+  }
+  else if(strcmp(dataType.c_str(), "pressure") == 0){
+    descriptor = 0x17;
+  }
+  else {
+    descriptor = 0x05; //Default is mag
+  }
+
+  uint8_t type, cfg, reserved;
+  reserved = 0x00; //Reserved byte MUST be set to 0x00
+
+  //Determine filter Type: IIR or none
+  if(strcmp(filterType.c_str(), "IIR") == 0) {
+    type = 0x01; //Single pole IIR LPF
+  }
+  else if( strcmp(filterType.c_str(), "none") == 0) {
+    type = 0x00;
+  }
+  else {
+    type = 0x01; //Default is IIR
+  }
+
+  //Determine config type: manual or auto
+  if(strcmp(config.c_str(), "manual") == 0) {
+    cfg = 0x01;
+  }
+  else if( strcmp(config.c_str(), "auto") == 0) {
+    cfg = 0x00; //Auto --> one-half reporting frequency
+  }
+  else {
+    cfg = 0x00; //Default is auto
+  }
+
+  encoder.append(COMMAND_FUNCTION_APPLY, descriptor, type, cfg, LPFBandwidth, reserved);
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  //saveCurrentSettings(COMMAND_CLASS_3DM, COMMAND_3DM_SET_LPF_BANDWIDTH);
+}
+
+void Imu::getLPFBandwidth(std::string &dataType, std::string &filterType,
+  std::string &config, uint16_t &LPFBandwidth) {
+  Packet p(COMMAND_CLASS_3DM);
+  PacketEncoder encoder(p);
+  encoder.beginField(COMMAND_3DM_SET_LPF_BANDWIDTH);
+  encoder.append(COMMAND_FUNCTION_READ); //Request to read
+  encoder.endField();
+  p.calcChecksum();
+  sendCommand(p);
+
+  //Extract information
+  uint8_t descriptor, type, cfg, reserved;
+  {
+    PacketDecoder decoder(packet_);
+    BOOST_VERIFY(decoder.advanceTo(REPLY_FIELD_3DM_LPF_BANDWIDTH));
+    decoder.extract(1, &descriptor);
+    decoder.extract(1, &type);
+    decoder.extract(1, &cfg);
+    decoder.extract(1, &LPFBandwidth);
+    decoder.extract(1, &reserved);
+  }
+
+  if(descriptor == 0x04)
+    dataType = (std::string)("accel");
+  else if(descriptor == 0x05)
+    dataType = (std::string)("gyro");
+  else if(descriptor == 0x06)
+    dataType = (std::string)("mag");
+  else if(descriptor == 0x17)
+    dataType = (std::string)("pressure");
+
+  if(type == 0x01)
+    filterType = (std::string)("IIR");
+  else if (type == 0x00)
+    filterType = (std::string)("none");
+
+  if(cfg == 0x01)
+    config = (std::string)("manual");
+  else if(cfg == 0x00)
+    config = (std::string)("auto");
+}
+
 void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLim,
   float highLim, float lowLimUncertainty, float highLimUncertainty,
   float minUncertainty) {
@@ -1179,24 +1279,18 @@ void Imu::setMagFilterErrAdaptMsmt(bool enabled, float LPFBandwidth, float lowLi
   uint8_t flag;
   if(!enabled) { //Disable
     flag = 0x00;
-    ROS_INFO("disabling");
     encoder.append(flag);
-    ROS_INFO("disabled");
   } else { //Enable and set parameters
     flag = 0x01;
-    ROS_INFO("enabling");
     encoder.append(flag, LPFBandwidth, lowLim, highLim,
     lowLimUncertainty, highLimUncertainty, minUncertainty);
-    ROS_INFO("enabled");
   }
 
   encoder.endField();
   p.calcChecksum();
   sendCommand(p);
 
-  ROS_INFO("Peter loses or wins");
   saveCurrentSettings(COMMAND_CLASS_FILTER, COMMAND_FILTER_MAG_ERR_ADAPT_MSMT);
-  ROS_INFO("Saved magnetometer magnitude error adaptive msmt settings");
 }
 
 void Imu::getMagFilterErrAdaptMsmt(float &LPFBandwidth, float &lowLim, float &highLim,
@@ -1420,10 +1514,10 @@ void Imu::processPacket() {
         filterData.fields |= FilterData::OrientationEuler;
         break;
       case DATA_FILTER_HEADING_UPDATE:
-        decoder.extract(1, &filterData.heading);
-        decoder.extract(1, &filterData.headingUncertainty);
+        decoder.extract(1, &filterData.headingUpdate);
+        decoder.extract(1, &filterData.headingUpdateUncertainty);
         decoder.extract(1, &filterData.headingUpdateSource);
-        decoder.extract(1, &filterData.headingFlags);
+        decoder.extract(1, &filterData.headingUpdateFlags);
         filterData.fields |= FilterData::HeadingUpdate;
         break;
       case DATA_FILTER_ACCELERATION:
