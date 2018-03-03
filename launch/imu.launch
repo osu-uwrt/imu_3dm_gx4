@@ -34,7 +34,8 @@
 
     <!-- Change Sensor LPF bandwidths -->
     <arg name="mag_LPF_bandwidth" default="1" />
-    <arg name="accel_LPF_bandwidth" default="50" />
+    <arg name="accel_LPF_bandwidth" default="25" />
+    <arg name="gyro_LPF_bandwidth" default="25" />
 
     <!-- Magnetometer Magnitude Error Adaptive Measurement -->
     <arg name="enable_mag_err_adapt_msmt" default="false" />
@@ -55,6 +56,7 @@
         <param name="enable_mag_err_adapt_msmt" type="bool" value="$(arg enable_mag_err_adapt_msmt)" />
         <param name="mag_LPF_bandwidth" type="int" value="$(arg mag_LPF_bandwidth)" />
         <param name="accel_LPF_bandwidth" type="int" value="$(arg accel_LPF_bandwidth)" />
+        <param name="gyro_LPF_bandwidth" type="int" value="$(arg gyro_LPF_bandwidth)" />
         <rosparam file="$(find riptide_hardware)/cfg/$(arg location).yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/sensor_to_vehicle_tf.yaml" command="load"/>
         <rosparam file="$(find riptide_hardware)/cfg/mag_err_adapt_msmt.yaml" command="load"/>

@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   bool enable_sensor_to_vehicle_tf;
 
   // Sensor LPF Bandwidths
-  int magLPFBandwidth3DM, accelLPFBandwidth3DM;
+  int magLPFBandwidth3DM, accelLPFBandwidth3DM, gyroLPFBandwidth3DM;
 
   // Variabls for Magnetometer Magnitude Error Adaptive Measurements
   bool enableMagErrAdaptMsmt;
@@ -232,7 +232,8 @@ int main(int argc, char **argv) {
   nh.param<std::string>("declination_source", declinationSource, std::string("manual")); //Default is World Magnetic Model
 
   nh.param<int>("mag_LPF_bandwidth", magLPFBandwidth3DM, 1);
-  nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 50);
+  nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 25);
+  nh.param<int>("gyro_LPF_bandwidth", gyroLPFBandwidth3DM, 25);
 
   // Parameters to adjust Magnetometer Magnitude Error Adaptive Measurement
   nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
@@ -359,8 +360,10 @@ int main(int argc, char **argv) {
     ROS_INFO("Sensor LPF Bandwidths");
     imu.setLPFBandwidth("mag", "IIR", "manual", magLPFBandwidth3DM);
     imu.setLPFBandwidth("accel", "IIR", "manual", accelLPFBandwidth3DM);
+    imu.setLPFBandwidth("gyro", "IIR", "manual", gyroLPFBandwidth3DM);
     ROS_INFO("\tMag LPF (Hz): %i", magLPFBandwidth3DM);
     ROS_INFO("\tAccel LPF (Hz): %i", accelLPFBandwidth3DM);
+    ROS_INFO("\tGyro LPF (Hz): %i", gyroLPFBandwidth3DM);
 
     ROS_INFO("Magnetometer Magnitude Err. Adapt Msmt");
     imu.setMagFilterErrAdaptMsmt(enableMagErrAdaptMsmt, magLPFBandwidth,
