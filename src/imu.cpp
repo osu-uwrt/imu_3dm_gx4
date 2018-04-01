@@ -910,6 +910,8 @@ void Imu::setHardIronOffset(float offset[3]) {
   assert(p.length == 0x0F);
   p.calcChecksum();
   sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_3DM, COMMAND_3DM_SET_HARD_IRON);
 }
 
 void Imu::setSoftIronMatrix(float matrix[9]) {
@@ -924,6 +926,8 @@ void Imu::setSoftIronMatrix(float matrix[9]) {
   assert(p.length == 0x27);
   p.calcChecksum();
   sendCommand(p);
+
+  saveCurrentSettings(COMMAND_CLASS_3DM, COMMAND_3DM_SET_SOFT_IRON);
 }
 
 void Imu::enableIMUStream(bool enabled) {
