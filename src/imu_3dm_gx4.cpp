@@ -191,9 +191,9 @@ int main(int argc, char **argv) {
   int requestedImuRate, requestedFilterRate;
   bool verbose;
 
-  // Variables for IMU reference position
+  // Variables for IMU Reference Position
   std::string headingUpdateSource, declinationSource;
-  std::string location;
+  std::string name, city, location;
   float roll, pitch, yaw;
   double latitude, longitude, altitude, manualDeclination;
   bool enable_sensor_to_vehicle_tf;
@@ -201,14 +201,18 @@ int main(int argc, char **argv) {
   // Sensor LPF Bandwidths
   int magLPFBandwidth3DM, accelLPFBandwidth3DM, gyroLPFBandwidth3DM;
 
+  // Hard and Soft Iron Offset
+  bool enable_iron_offset;
+  float hx, hy, hz, m11, m12, m13, m21, m22, m23, m31, m32, m33;
+
   // Variabls for Magnetometer Magnitude Error Adaptive Measurements
-  bool enableMagErrAdaptMsmt;
+  /*bool enableMagErrAdaptMsmt;
   float magLPFBandwidth, magLowLim, magHighLim, magLowLimUncertainty;
   float magHighLimUncertainty, magMinUncertainty;
   float LPFBandwidth, lowLim, highLim, lowLimUncertainty;
-  float highLimUncertainty, minUncertainty;
+  float highLimUncertainty, minUncertainty;*/
 
-  // Load parameters from launch file
+  // Load Main Parameters from Launch File
   nh.param<std::string>("device", device, "/dev/imu_front");
   nh.param<int>("baudrate", baudrate, 115200);
   nh.param<std::string>("frame_id", frameId, std::string("imu"));
@@ -218,8 +222,10 @@ int main(int argc, char **argv) {
   nh.param<bool>("enable_accel_update", enableAccelUpdate, true);
   nh.param<bool>("verbose", verbose, false);
 
-  // Additional parameters - used to set IMU reference position
-  nh.param<std::string>("location", location, (std::string)"columbus");
+  // Parameters for IMU Reference Position
+  nh.param<std::string>("name", name, (std::string)"imu_front");
+  nh.param<std::string>("city", city, (std::string)"columbus");
+  nh.param<std::string>("location", location, (std::string)"CAR");
   nh.param<double>("latitude", latitude, 39.9984f); //Default is Columbus latitude
   nh.param<double>("longitude", longitude, -83.0179f); //Default is Columbus longitude
   nh.param<double>("altitude", altitude, 224.0f); //Default is Columbus altitude
@@ -235,14 +241,30 @@ int main(int argc, char **argv) {
   nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 25);
   nh.param<int>("gyro_LPF_bandwidth", gyroLPFBandwidth3DM, 25);
 
+  nh.param<bool>("enable_iron_offset", enable_iron_offset, false);
+  nh.param<float>("hx", hx, 0.0);
+  nh.param<float>("hy", hy, 0.0);
+  nh.param<float>("hz", hz, 0.0);
+  nh.param<float>("m11", m11, 1.0);
+  nh.param<float>("m12", m12, 0.0);
+  nh.param<float>("m13", m13, 0.0);
+  nh.param<float>("m2", m21, 0.0);
+  nh.param<float>("m22", m22, 1.0);
+  nh.param<float>("m23", m23, 0.0);
+  nh.param<float>("m31", m31, 0.0);
+  nh.param<float>("m32", m32, 0.0);
+  nh.param<float>("m33", m33, 1.0);
+  float hard_offset[3] = {hx, hy, hz};
+  float soft_matrix[9] = {m11, m12, m13, m21, m22, m23, m31, m32, m33};
+
   // Parameters to adjust Magnetometer Magnitude Error Adaptive Measurement
-  nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
+  /*nh.param<bool>("enable_mag_err_adapt_msmt", enableMagErrAdaptMsmt, false);
   nh.param<float>("LPF_bandwidth", magLPFBandwidth, 25);
   nh.param<float>("low_limit", magLowLim, -0.1);
   nh.param<float>("high_limit", magHighLim, 0.1);
   nh.param<float>("low_limit_uncertainty", magLowLimUncertainty, 0.1);
   nh.param<float>("high_limit_uncertainty", magHighLimUncertainty, 0.1);
-  nh.param<float>("min_uncertainty", magMinUncertainty, 0.05);
+  nh.param<float>("min_uncertainty", magMinUncertainty, 0.05);*/
 
   if (requestedFilterRate < 0 || requestedImuRate < 0) {
     ROS_ERROR("imu_rate and filter_rate must be > 0");
@@ -335,7 +357,10 @@ int main(int argc, char **argv) {
     yaw *= (PI/180);
     manualDeclination *= (PI/180);
 
+    ROS_INFO("IMU Name = %s", name.c_str());
+    ROS_INFO("City = %s", city.c_str());
     ROS_INFO("Location = %s", location.c_str());
+
     ROS_INFO("Sensor to Vehicle Frame Transformation");
     imu.setSensorToVehicleTF(roll, pitch, yaw);
     ROS_INFO("\tRoll (deg): %f", roll*180/PI);
@@ -365,7 +390,15 @@ int main(int argc, char **argv) {
     ROS_INFO("\tAccel LPF (Hz): %i", accelLPFBandwidth3DM);
     ROS_INFO("\tGyro LPF (Hz): %i", gyroLPFBandwidth3DM);
 
-    ROS_INFO("Magnetometer Magnitude Err. Adapt Msmt");
+    ROS_INFO("Setting Hard and Soft Iron Offsets");
+    if(enable_iron_offset) {
+      imu.setHardIronOffset(hard_offset);
+      imu.setSoftIronMatrix(soft_matrix);
+    }
+    ROS_INFO("\tEnable Status: %i", enable_iron_offset);
+    ROS_INFO("\tFile: %s_%s_%s.yaml", name.c_str(), city.c_str(), location.c_str());
+
+    /*ROS_INFO("Magnetometer Magnitude Err. Adapt Msmt");
     imu.setMagFilterErrAdaptMsmt(enableMagErrAdaptMsmt, magLPFBandwidth,
         magLowLim, magHighLim, magLowLimUncertainty, magHighLimUncertainty,
         magMinUncertainty);
@@ -383,7 +416,7 @@ int main(int argc, char **argv) {
     ROS_INFO("\tHigh Lim (Gauss): %f", highLim);
     ROS_INFO("\tLow Lim Uncrty (Gauss): %f", lowLimUncertainty);
     ROS_INFO("\tHigh Lim Uncrty (Gauss): %f", highLimUncertainty);
-    ROS_INFO("\tMin Uncrty (Gauss): %f", minUncertainty);
+    ROS_INFO("\tMin Uncrty (Gauss): %f", minUncertainty);*/
     //////////////////////////////////////////////////////////////////////////
 
     // Configure diagnostic updater
