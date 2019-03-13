@@ -12,11 +12,12 @@ add_message_files(DIRECTORY msg)
 generate_messages(DEPENDENCIES geometry_msgs)
 
 catkin_package(
+  INCLUDE_DIRS include
   CATKIN_DEPENDS message_runtime geometry_msgs sensor_msgs)
 
 # include boost
 find_package(Boost REQUIRED)
-include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 
 add_definitions("-std=c++0x -Wall -Werror")
 
