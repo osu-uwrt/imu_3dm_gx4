@@ -97,12 +97,12 @@ The topic for the IMU's estimation filter is published on a separate topic on an
 # Settings 
 The following settings are organized according to [LORD Microstrain's 3DM-GX4-25 Data Communications Protocol manual](http://files.microstrain.com/3DM-GX4-25%20Data%20Communications%20Protocol.pdf).
 
-This package comes with a templated settings YAML `/cfg/default_settings.yaml`. In your own launch file, you may pass in such a file path and this driver will use those parameters instead of the default ones.
+This package comes with a templated settings YAML file: `cfg/default_settings.yaml`. In your own launch file, you may pass in such a file path and this driver will use those parameters instead of the default ones.
 
 ## 3DM Settings
 ### High-Level Settings
 The `imu_3dm_gx4` node supports the following base settings:
-* `device` (Default is `/dev/ttyACM0`): Path to the device in `/dev`. .
+* `device` (Default is `/dev/ttyACM0`): Path to the device in `/dev/...`
 * `baudrate` (Defaults is `115200`): Baudrate to employ with serial communication.
 * `frame_id`: Frame to use in headers.
 * `imu_rate` (Default is `100`): Controls the rate at which ALL THREE of the IMU's sensors output data (synchronously), in Hz.
@@ -130,30 +130,28 @@ The following options allow the user to change the IMU's internal infinite impul
 ### Pre-load Hard and Soft Iron Coefficients
 The following option is for setting the IMU to load a pre-defined set of Hard and Soft Iron coefficients:
 * `enable_iron_offset` (Default is `false`); Indicates if IMU should load pre-defined coefficients from a YAML file. 
-  - TODO: fix/provide data format
+  - The default hard iron offsets along the x, y, and z axes are all set to 0.
+  - The default soft-iron matrix is set to the 3x3 identity matrix.
+  - Please see the `cfg/default_settings.yaml` file for the specific format of loading the hard and soft-iron parameters.
 
 ## Estimation Filter Settings
-Note: The "Heading Update" setting requires the reference location AND the declination source to be set.
 ### Sensor-to-Vehicle Transformation
-The sensor-to-vehicle transformation feature allows the user to specify the coordinate transformation from the sensor frame to the body frame (via Euler Angles in the order of yaw, pitch, then roll). from the sensor TO the body-frame. The user simply needs to define the following three data fields in a YAML file called `sensor_to_vehicle_tf.yaml`. Default values are assumed to be `0 deg`.
-* `roll`: Units in deg.
-* `pitch`: Units in deg.
-* `yaw`: Units in deg
+The sensor-to-vehicle transformation feature allows the user to specify the coordinate transformation FROM the sensor frame TO the vehicle frame (via Euler Angles in the order of yaw, pitch, then roll). Default values are assumed to be `0 deg`.
+* `roll`: Roll angle, in deg.
+* `pitch`: Pitch angle, in deg.
+* `yaw`: Yaw angle, in deg.
 
-### Set Reference Location
+### Set Reference Location and Heading Update
 The following options are required for the heading update feature:
-* `name` (Default is `imu_front`): Common name for the IMU
-* `city` (Default is `columbus`): City in which reference location resides
-* `location` (Default is `CAR`): Actual reference location. Other possible examples: `apartment`, `university_pool`, etc.
-
-### Set Heading Update
+* `latitude` (Default is `39.9984`): Latitude, in deg.
+* `longitude` (Default is `-83.0179`): Longitude, in deg.
+* `altitude` (Default is `224.0`): Altitude, in meters
+* `declination` (Default is `-7.110`): Declination angle, in deg.
 * `heading_update_source` (Default is `magnetometer`): Possible options are: `none`, `external`, or `magnetometer`
   - IMPORTANT: The 3DM-GX4-25 model does NOT perform the heading update well in the presence of EMI. The manufacturer claims setting the IIR LPF bandwidth on the magnetometer affects the values used by the AEKF in this correction step. Through trial and error, setting the magnetometer bandwidth below that of the EMI does improve the heading update output, however, the output still exhibits considerable sinusoidal behavior (unusable for yaw control).
     * This heading update appears as `heading_update_LORD` within the `imu_3dm_gx4/FilterOutput` message.
   - This driver offers an ALTERNATIVE heading update feature which performs the calculation correctly.
     * This alternative heading update appears as `heading_update_alt` within the `imu_3dm_gx4/FilterOutput` message.
-
-### Set Declination Source
 * `declination_source` (Default is `wmm`): Possible options are: `none`, `wmm`, or `manual`
   - Note: `wmm` indicates the IMU should use its internal World Magnetometer Model (the GX4 has the 2005 model preloaded)
 
