@@ -235,16 +235,15 @@ void updateDiagnosticInfo(diagnostic_updater::DiagnosticStatusWrapper& stat,
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "imu_3dm_gx4");
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh;
 
-  std::string device;
+  std::string name, device;
   int baudrate;
   int requestedImuRate, requestedFilterRate;
   bool verbose;
 
   // Variables for IMU Reference Position
   std::string headingUpdateSource, declinationSource;
-  std::string name, city, location;
   float rollDeg, rollRad, pitchDeg, pitchRad, yawDeg, yawRad;
   double latitude, longitude, altitude, declinationDeg;
 
@@ -256,7 +255,8 @@ int main(int argc, char **argv) {
   float hx, hy, hz, m11, m12, m13, m21, m22, m23, m31, m32, m33;
 
   // Load Main Parameters from Launch File
-  nh.param<std::string>("device", device, "/dev/imu_front");
+  nh.param<std::string>("name", name, (std::string)"imu");
+  nh.param<std::string>("device", device, "/dev/imu");
   nh.param<int>("baudrate", baudrate, 115200);
   nh.param<std::string>("frame_id", frameId, std::string("imu"));
   nh.param<int>("imu_rate", requestedImuRate, 100);
@@ -264,9 +264,6 @@ int main(int argc, char **argv) {
   nh.param<bool>("verbose", verbose, false);
 
   // Parameters for IMU Reference Position
-  nh.param<std::string>("name", name, (std::string)"imu_front");
-  nh.param<std::string>("city", city, (std::string)"columbus");
-  nh.param<std::string>("location", location, (std::string)"CAR");
   nh.param<double>("latitude", latitude, 39.9984f); //Default is Columbus latitude
   nh.param<double>("longitude", longitude, -83.0179f); //Default is Columbus longitude
   nh.param<double>("altitude", altitude, 224.0f); //Default is Columbus altitude
@@ -277,9 +274,9 @@ int main(int argc, char **argv) {
   nh.param<std::string>("heading_update_source", headingUpdateSource, std::string("magnetometer")); //Default is magnetometer
   nh.param<std::string>("declination_source", declinationSource, std::string("manual")); //Default is World Magnetic Model
 
-  nh.param<int>("mag_LPF_bandwidth", magLPFBandwidth3DM, 1);
-  nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 25);
-  nh.param<int>("gyro_LPF_bandwidth", gyroLPFBandwidth3DM, 25);
+  nh.param<int>("mag_LPF_bandwidth", magLPFBandwidth3DM, 15);
+  nh.param<int>("accel_LPF_bandwidth", accelLPFBandwidth3DM, 50);
+  nh.param<int>("gyro_LPF_bandwidth", gyroLPFBandwidth3DM, 50);
 
   nh.param<bool>("enable_iron_offset", enable_iron_offset, false);
   nh.param<float>("hx", hx, 0.0);
@@ -390,8 +387,6 @@ int main(int argc, char **argv) {
     declinationRad = declinationDeg * (PI/180);
 
     ROS_INFO("IMU Name = %s", name.c_str());
-    ROS_INFO("City = %s", city.c_str());
-    ROS_INFO("Location = %s", location.c_str());
 
     ROS_INFO("Sensor to Vehicle Frame Transformation");
     imu.setSensorToVehicleTF(rollRad, pitchRad, yawRad);
