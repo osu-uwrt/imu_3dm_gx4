@@ -1,16 +1,21 @@
 <launch>
     <!-- Node Name -->
-    <arg name="name" default="imu"/>
+    <arg name="imu_name" default="imu"/>
 
     <!-- Device Port -->
-    <arg name="device" default="/dev/imu" />
+    <arg name="device" default="/dev/ttyACM0" />
 
     <!-- Frame ID for messages -->
-    <arg name="frame_id" default="$(arg name)"/>
+    <arg name="frame_id" default="$(arg imu_name)"/>
 
-    <node pkg="imu_3dm_gx4" name="$(arg name)" type="imu_3dm_gx4" output="screen">
-        <param name="name" type="string" value="$(arg name)" />
+    <group ns="$(arg imu_name)">
+        <!-- If you have a settings file you want to load -->
+        <!--<rosparam command="load" file="file_name.yaml">-->
+
+        <param name="imu_name" type="string" value="$(arg imu_name)" />
         <param name="frame_id" type="string" value="$(arg frame_id)"/>
         <param name="device" type="string" value="$(arg device)" />
-    </node>
+        
+        <node pkg="imu_3dm_gx4" name="$(arg imu_name)" type="imu_3dm_gx4" output="screen"/>
+    </group>
 </launch>

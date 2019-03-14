@@ -235,7 +235,7 @@ void updateDiagnosticInfo(diagnostic_updater::DiagnosticStatusWrapper& stat,
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "imu_3dm_gx4");
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh;
 
   std::string name, device;
   int baudrate;
