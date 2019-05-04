@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
   nh.param<float>("m11", m11, 1.0);
   nh.param<float>("m12", m12, 0.0);
   nh.param<float>("m13", m13, 0.0);
-  nh.param<float>("m22", m21, 0.0);
+  nh.param<float>("m21", m21, 0.0);
   nh.param<float>("m22", m22, 1.0);
   nh.param<float>("m23", m23, 0.0);
   nh.param<float>("m31", m31, 0.0);
@@ -425,6 +425,18 @@ int main(int argc, char **argv) {
     if(enable_iron_offset) {
       imu.setHardIronOffset(hard_offset);
       imu.setSoftIronMatrix(soft_matrix);
+      ROS_INFO("\t Hx: %f", hx);
+      ROS_INFO("\t Hy: %f", hy);
+      ROS_INFO("\t Hz: %f", hz);
+      ROS_INFO("\t m11: %f", m11);
+      ROS_INFO("\t m12: %f", m12);
+      ROS_INFO("\t m13: %f", m13);
+      ROS_INFO("\t m21: %f", m21);
+      ROS_INFO("\t m22: %f", m22);
+      ROS_INFO("\t m23: %f", m23);
+      ROS_INFO("\t m31: %f", m31);
+      ROS_INFO("\t m32: %f", m32);
+      ROS_INFO("\t m33: %f", m33);
     }
     //////////////////////////////////////////////////////////////////////////
 
