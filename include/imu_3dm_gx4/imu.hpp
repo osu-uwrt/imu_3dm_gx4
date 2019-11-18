@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <memory>
 #include <string>
+#include <functional>
 #include <deque>
 #include <queue>
 #include <vector>
