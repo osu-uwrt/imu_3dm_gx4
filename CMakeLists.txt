@@ -23,13 +23,13 @@ include_directories(${catkin_INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} src/imu_3dm_gx4.cpp src/imu.cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS}
+                 ${catkin_EXPORTED_TARGETS})
 
 add_executable(merge_imu_filter src/merge_imu_filter.cpp)
 target_link_libraries(merge_imu_filter ${catkin_LIBRARIES})
+add_dependencies(merge_imu_filter ${catkin_EXPORTED_TARGETS})
 
-
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS}
-                 ${catkin_EXPORTED_TARGETS})
 
 catkin_install_python(PROGRAMS script/add_rule
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
