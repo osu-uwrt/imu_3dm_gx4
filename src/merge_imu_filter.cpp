@@ -15,6 +15,7 @@ void callback(const ImuConstPtr& imu, const FilterOutputConstPtr& filter)
 {
   Imu new_imu = *imu;
   new_imu.orientation = filter->orientation;
+  new_imu.orientation_covariance = filter->orientation_covariance;
   pubMerge.publish(new_imu);
 }
 
