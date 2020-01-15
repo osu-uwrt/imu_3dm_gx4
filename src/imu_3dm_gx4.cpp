@@ -12,6 +12,7 @@
 #include <sensor_msgs/MagneticField.h>
 #include <std_msgs/Float64.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <imu_3dm_gx4/FilterOutput.h>
 #include "imu.hpp"
@@ -33,6 +34,7 @@ Imu::Info info;
 Imu::DiagnosticFields fields;
 bool enableMagnetometer;
 bool enableTf;
+bool useENU;
 
 //  diagnostic_updater resources
 std::shared_ptr<diagnostic_updater::Updater> updater;
@@ -82,6 +84,18 @@ void publishData(const Imu::IMUData& data) {
     field.magnetic_field.z = data.mag[2];
   }
 
+  if (useENU) {
+    imu.linear_acceleration.y *= -1;
+    imu.linear_acceleration.z *= -1;
+    imu.angular_velocity.y *= -1;
+    imu.angular_velocity.z *= -1;
+    if (enableMagnetometer) {
+      field.magnetic_field.x = data.mag[1];
+      field.magnetic_field.y = data.mag[0];
+      field.magnetic_field.z = -data.mag[2];
+    }
+  }
+
   //  publish
   pubIMU.publish(imu);
   pubPressure.publish(pressure);
@@ -127,6 +141,19 @@ void publishFilter(const Imu::FilterData& data) {
   output.bias_status = data.biasStatus;
   output.orientation_covariance_status = data.angleUncertaintyStatus;
   output.bias_covariance_status = data.biasUncertaintyStatus;
+
+  if (useENU) {
+    output.bias.y *= -1;
+    output.bias.z *= -1;
+    tf2::Quaternion q_orig, q_rot, q_new;
+    tf2::convert(output.orientation , q_orig);
+    q_rot.setRPY(0, 0, -1.570796); // Rotate the previous pose by 180* about X and -90 about Z
+    q_new = q_rot*q_orig;  // Calculate the new orientation
+    q_new.normalize();
+    tf2::convert(q_new, output.orientation);
+    output.orientation.y *= -1;
+    output.orientation.z *= -1;
+  }
 
   pubFilter.publish(output);
 
@@ -210,6 +237,7 @@ int main(int argc, char** argv) {
   pnh.param<bool>("enable_accel_update", enableAccelUpdate, true);
   pnh.param<bool>("enable_tf", enableTf, enableFilter);
   pnh.param<bool>("verbose", verbose, false);
+  pnh.param<bool>("use_enu", useENU, false);
 
   if (gravity <= 0.0) {
     ROS_ERROR("Must set gravity value");
