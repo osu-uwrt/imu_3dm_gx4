@@ -25,10 +25,10 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh;
 
-  pubMerge = nh.advertise<sensor_msgs::Imu>("data", 1);
+  pubMerge = nh.advertise<sensor_msgs::Imu>("imu/data", 1);
 
-  message_filters::Subscriber<Imu> imu_sub(nh, "/imu/imu", 5);
-  message_filters::Subscriber<FilterOutput> filter_sub(nh, "/imu/filter", 5);
+  message_filters::Subscriber<Imu> imu_sub(nh, "imu/imu", 5);
+  message_filters::Subscriber<FilterOutput> filter_sub(nh, "imu/filter", 5);
 
 	typedef sync_policies::ApproximateTime<Imu, FilterOutput> MySyncPolicy;
 	Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), imu_sub, filter_sub);
