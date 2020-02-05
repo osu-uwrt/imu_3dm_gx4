@@ -39,6 +39,10 @@
     <!-- Whether output convention is ENU -->
     <arg name="use_enu" default="false"/>
 
+    <!-- Sensor uncertainty -->
+    <arg name="linear_acceleration_stddev" default="0.01671861472843" />
+    <arg name="angular_velocity_stddev" default="0.001009749717591" />
+
     <node pkg="imu_3dm_gx4" name="$(arg imu)" type="imu_3dm_gx4" output="$(arg output)" respawn="true">
         <param name="device" type="string" value="$(arg device)" />
         <param name="verbose" type="bool" value="$(arg verbose)"/>
@@ -53,5 +57,7 @@
         <param name="enable_accel_update" type="bool" value="$(arg enable_accel_update)"/>
         <param name="enable_mag_update" type="bool" value="$(arg enable_mag_update)"/>
         <param name="use_enu" type="bool" value="$(arg use_enu)"/>
+        <param name="linear_acceleration_stddev" type="double" value="$(arg linear_acceleration_stddev)" />
+        <param name="angular_velocity_stddev" type="double" value="$(arg angular_velocity_stddev)" />
     </node>
 </launch>

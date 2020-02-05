@@ -35,6 +35,8 @@ Imu::DiagnosticFields fields;
 bool enableMagnetometer;
 bool enableTf;
 bool useENU;
+double linear_acceleration_variance;
+double angular_velocity_variance;
 
 //  diagnostic_updater resources
 std::shared_ptr<diagnostic_updater::Updater> updater;
@@ -72,9 +74,15 @@ void publishData(const Imu::IMUData& data) {
   imu.linear_acceleration.x = data.accel[0] * gravity;
   imu.linear_acceleration.y = data.accel[1] * gravity;
   imu.linear_acceleration.z = data.accel[2] * gravity;
+  imu.linear_acceleration_covariance[0] = linear_acceleration_variance;
+  imu.linear_acceleration_covariance[4] = linear_acceleration_variance;
+  imu.linear_acceleration_covariance[8] = linear_acceleration_variance;
   imu.angular_velocity.x = data.gyro[0];
   imu.angular_velocity.y = data.gyro[1];
   imu.angular_velocity.z = data.gyro[2];
+  imu.angular_velocity_covariance[0] = angular_velocity_variance;
+  imu.angular_velocity_covariance[4] = angular_velocity_variance;
+  imu.angular_velocity_covariance[8] = angular_velocity_variance;
 
   pressure.fluid_pressure = data.pressure;
 
@@ -222,6 +230,7 @@ int main(int argc, char** argv) {
   bool enableMagUpdate, enableAccelUpdate;
   int requestedImuRate, requestedFilterRate;
   bool verbose;
+  double linear_acceleration_stddev, angular_velocity_stddev;
 
   //  load parameters from launch file
   pnh.param<std::string>("device", device, "/dev/ttyACM0");
@@ -238,6 +247,11 @@ int main(int argc, char** argv) {
   pnh.param<bool>("enable_tf", enableTf, enableFilter);
   pnh.param<bool>("verbose", verbose, false);
   pnh.param<bool>("use_enu", useENU, false);
+  pnh.param<double>("linear_acceleration_stddev", linear_acceleration_stddev, 0);
+  pnh.param<double>("angular_velocity_stddev", angular_velocity_stddev, 0);
+  linear_acceleration_variance = linear_acceleration_stddev * linear_acceleration_stddev;
+  angular_velocity_variance = angular_velocity_stddev * angular_velocity_stddev;
+  
 
   if (gravity <= 0.0) {
     ROS_ERROR("Must set gravity value");
