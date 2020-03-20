@@ -40,8 +40,8 @@
     <arg name="use_enu" default="false"/>
 
     <!-- Sensor uncertainty -->
-    <arg name="linear_acceleration_stddev" default="0.01671861472843" />
-    <arg name="angular_velocity_stddev" default="0.001009749717591" />
+    <arg name="linear_acceleration_stddev" default="0.05" />
+    <arg name="angular_velocity_stddev" default="0.005" />
 
     <node pkg="imu_3dm_gx4" name="$(arg imu)" type="imu_3dm_gx4" output="$(arg output)" respawn="true">
         <param name="device" type="string" value="$(arg device)" />
